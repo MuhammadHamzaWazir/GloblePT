@@ -1,13 +1,124 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '../../../lib/prisma';
+import { sendEmail, emailTemplates } from '../../../lib/email';
 
 export async function POST(req: NextRequest) {
-  const { name, email, message } = await req.json();
-  const contact = await prisma.contact.create({ data: { name, email, message } });
-  return NextResponse.json(contact);
+  try {
+    const { name, email, message } = await req.json();
+    
+    // Validate required fields
+    if (!name || !email || !message) {
+      return NextResponse.json({ 
+        success: false, 
+        message: 'Name, email, and message are required' 
+      }, { status: 400 });
+    }
+
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return NextResponse.json({ 
+        success: false, 
+        message: 'Please provide a valid email address' 
+      }, { status: 400 });
+    }
+
+    // Save contact to database
+    const contact = await prisma.contact.create({ 
+      data: { 
+        name: name.trim(), 
+        email: email.trim().toLowerCase(), 
+        message: message.trim() 
+      } 
+    });
+
+    // Send email notifications
+    try {
+      // 1. Send notification to admin
+      const adminTemplate = emailTemplates.contactForm({ name, email, message });
+      const adminEmail = process.env.ADMIN_EMAIL || 'admin@globalpharmacy.com';
+      
+      const adminEmailResult = await sendEmail({
+        to: adminEmail,
+        subject: adminTemplate.subject,
+        html: adminTemplate.html,
+        text: adminTemplate.text
+      });
+
+      // 2. Send confirmation to customer
+      const customerTemplate = emailTemplates.contactConfirmation({ name });
+      
+      const customerEmailResult = await sendEmail({
+        to: email,
+        subject: customerTemplate.subject,
+        html: customerTemplate.html,
+        text: customerTemplate.text
+      });
+
+      console.log('Emails sent successfully:', {
+        admin: adminEmailResult.messageId,
+        customer: customerEmailResult.messageId,
+        adminPreview: adminEmailResult.previewUrl,
+        customerPreview: customerEmailResult.previewUrl
+      });
+
+      return NextResponse.json({
+        success: true,
+        message: 'Contact form submitted successfully. You will receive a confirmation email shortly.',
+        data: { 
+          contact,
+          emailStatus: {
+            adminSent: true,
+            customerSent: true,
+            adminPreview: adminEmailResult.previewUrl,
+            customerPreview: customerEmailResult.previewUrl
+          }
+        }
+      });
+
+    } catch (emailError) {
+      console.error('Email sending failed:', emailError);
+      
+      // Still return success since contact was saved, but note email failure
+      return NextResponse.json({
+        success: true,
+        message: 'Contact form submitted successfully, but email notification failed.',
+        data: { 
+          contact,
+          emailStatus: {
+            adminSent: false,
+            customerSent: false,
+            error: emailError instanceof Error ? emailError.message : 'Email sending failed'
+          }
+        }
+      });
+    }
+
+  } catch (error) {
+    console.error('Contact form error:', error);
+    return NextResponse.json({ 
+      success: false, 
+      message: 'Failed to submit contact form. Please try again.' 
+    }, { status: 500 });
+  }
 }
 
 export async function GET() {
-  const contacts = await prisma.contact.findMany({ orderBy: { createdAt: 'desc' } });
-  return NextResponse.json(contacts);
+  try {
+    const contacts = await prisma.contact.findMany({ 
+      orderBy: { createdAt: 'desc' },
+      take: 50 // Limit to recent 50 contacts
+    });
+    
+    return NextResponse.json({
+      success: true,
+      data: { contacts }
+    });
+  } catch (error) {
+    console.error('Failed to fetch contacts:', error);
+    return NextResponse.json({ 
+      success: false, 
+      message: 'Failed to fetch contacts' 
+    }, { status: 500 });
+  }
 }

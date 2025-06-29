@@ -19,8 +19,14 @@ model User {
   file2Url String?
   roleId   Int?
   role     Role?    @relation(fields: [roleId], references: [id])
+  supervisorId Int?
+  supervisor   User? @relation("UserSupervisor", fields: [supervisorId], references: [id])
+  subordinates User[] @relation("UserSupervisor")
   complaints Complaint[]
+  assignedComplaints Complaint[] @relation("ComplaintAssigner")
+  resolvedComplaints Complaint[] @relation("ComplaintResolver")
   prescriptions Prescription[]
+  approvedPrescriptions Prescription[] @relation("PrescriptionApprover")
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -48,13 +54,36 @@ model Customer {
 }
 
 model Complaint {
-  id        Int      @id @default(autoincrement())
-  userId    Int
-  user      User     @relation(fields: [userId], references: [id])
-  message   String
-  fileUrl   String?
-  status    String   @default("pending")
-  createdAt DateTime @default(now())
+  id            Int      @id @default(autoincrement())
+  userId        Int
+  user          User     @relation(fields: [userId], references: [id])
+  
+  // Complaint details
+  title         String   @default("General Complaint")
+  description   String   @db.Text @default("No description provided")
+  category      String   @default("service") // service, staff, product, delivery, billing
+  priority      String   @default("medium")  // low, medium, high, urgent
+  fileUrl       String?
+  
+  // Assignment and status
+  status        String   @default("received") // received, investigating, resolved, closed
+  assignedToId  Int?
+  assignedTo    Staff?   @relation(fields: [assignedToId], references: [id])
+  assignedAt    DateTime?
+  
+  // Admin actions
+  assignedById  Int?
+  assignedBy    User?    @relation("ComplaintAssigner", fields: [assignedById], references: [id])
+  
+  // Resolution
+  resolution    String?  @db.Text
+  resolvedAt    DateTime?
+  resolvedById  Int?
+  resolvedBy    User?    @relation("ComplaintResolver", fields: [resolvedById], references: [id])
+  
+  // Timestamps
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt @default(now())
 }
 
 model Staff {
@@ -65,6 +94,7 @@ model Staff {
   phone     String?
   createdAt DateTime @default(now())
   prescriptions Prescription[]
+  complaints Complaint[]
 }
 
 model Prescription {
@@ -73,10 +103,47 @@ model Prescription {
   user          User     @relation(fields: [userId], references: [id])
   staffId       Int?
   staff         Staff?   @relation(fields: [staffId], references: [id])
+  
+  // Prescription details
   medicine      String
+  dosage        String?
+  instructions  String?
+  quantity      Int      @default(1)
+  prescriptionText String @db.Text @default("") // Full prescription details
+  
+  // Pricing and billing
   amount        Float
   deliveryAddress String
-  status        String   @default("pending")
-  paymentStatus String   @default("unpaid")
+  
+  // Status tracking
+  status        String   @default("pending") // pending, approved, rejected, ready_to_ship, dispatched, delivered
+  paymentStatus String   @default("unpaid")  // unpaid, paid, refunded
+  
+  // Payment tracking
+  stripePaymentIntentId String?
+  stripeChargeId       String?
+  paidAt               DateTime?
+  
+  // Admin actions
+  approvedBy    Int?
+  approvedByUser User? @relation("PrescriptionApprover", fields: [approvedBy], references: [id])
+  approvedAt    DateTime?
+  rejectedReason String?
+  
+  // Tracking information
+  trackingNumber String?
+  dispatchedAt   DateTime?
+  deliveredAt    DateTime?
+  
   createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt @default(now())
+}
+
+model Contact {
+  id        Int      @id @default(autoincrement())
+  name      String
+  email     String
+  message   String   @db.Text
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt @default(now())
 }
