@@ -1,0 +1,40 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Build Next.js App",
+      "type": "shell",
+      "command": "npm run build",
+      "group": "build",
+      "problemMatcher": ["$tsc"]
+    },
+    {
+      "label": "Start Next.js App",
+      "type": "shell",
+      "command": "npm run start",
+      "group": "test",
+      "problemMatcher": []
+    },
+    {
+      "label": "Dev Next.js App",
+      "type": "shell",
+      "command": "npm run dev",
+      "isBackground": true,
+      "problemMatcher": []
+    },
+    {
+      "label": "Docker Build",
+      "type": "shell",
+      "command": "docker build -t pharmacy-app .",
+      "group": "build",
+      "problemMatcher": []
+    },
+    {
+      "label": "Docker Run",
+      "type": "shell",
+      "command": "docker run -p 3000:3000 pharmacy-app",
+      "group": "test",
+      "problemMatcher": []
+    }
+  ]
+}

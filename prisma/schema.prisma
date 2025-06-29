@@ -1,0 +1,82 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id       Int      @id @default(autoincrement())
+  name     String
+  email    String   @unique
+  password String
+  address  String
+  nationalInsuranceNumber String?
+  nhsNumber String?
+  file1Url String?
+  file2Url String?
+  roleId   Int?
+  role     Role?    @relation(fields: [roleId], references: [id])
+  complaints Complaint[]
+  prescriptions Prescription[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Permission {
+  id    Int    @id @default(autoincrement())
+  name  String @unique
+  roles Role[] @relation("RolePermissions")
+}
+
+model Role {
+  id          Int          @id @default(autoincrement())
+  name        String       @unique
+  users       User[]
+  permissions Permission[] @relation("RolePermissions")
+}
+
+model Customer {
+  id        Int      @id @default(autoincrement())
+  name      String
+  email     String   @unique
+  address   String
+  phone     String?
+  createdAt DateTime @default(now())
+}
+
+model Complaint {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id])
+  message   String
+  fileUrl   String?
+  status    String   @default("pending")
+  createdAt DateTime @default(now())
+}
+
+model Staff {
+  id        Int      @id @default(autoincrement())
+  name      String
+  email     String   @unique
+  address   String
+  phone     String?
+  createdAt DateTime @default(now())
+  prescriptions Prescription[]
+}
+
+model Prescription {
+  id            Int      @id @default(autoincrement())
+  userId        Int
+  user          User     @relation(fields: [userId], references: [id])
+  staffId       Int?
+  staff         Staff?   @relation(fields: [staffId], references: [id])
+  medicine      String
+  amount        Float
+  deliveryAddress String
+  status        String   @default("pending")
+  paymentStatus String   @default("unpaid")
+  createdAt     DateTime @default(now())
+}
