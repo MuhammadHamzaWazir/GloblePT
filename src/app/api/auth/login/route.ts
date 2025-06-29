@@ -69,6 +69,7 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ 
       message: "Login successful",
+      token: token,
       user: {
         id: user.id,
         email: user.email,
