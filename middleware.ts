@@ -27,6 +27,9 @@ export function middleware(request: NextRequest) {
   const isPublicPath = publicPaths.some(publicPath => 
     path === publicPath || 
     path.startsWith("/api/auth") || 
+    path.startsWith("/api/seed-production") ||
+    path.startsWith("/api/setup-production") ||
+    path.startsWith("/api/contact") ||
     path.startsWith("/_next") || 
     path.startsWith("/public") ||
     path.startsWith("/images") ||
@@ -90,12 +93,15 @@ export const config = {
   matcher: [
     /*
      * Match all request paths except for the ones starting with:
-     * - api (API routes - handled separately)
+     * - api/seed-production (database seeding)
+     * - api/setup-production (database setup)
+     * - api/auth (authentication)
+     * - api/contact (contact form)
      * - _next/static (static files)
      * - _next/image (image optimization files)
      * - favicon.ico (favicon file)
      * - public folder
      */
-    "/((?!api|_next/static|_next/image|favicon.ico|public).*)",
+    "/((?!api/seed-production|api/setup-production|api/auth|api/contact|_next/static|_next/image|favicon.ico|public).*)",
   ],
 };
