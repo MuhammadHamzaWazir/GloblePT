@@ -92,16 +92,13 @@ export function middleware(request: NextRequest) {
 export const config = {
   matcher: [
     /*
-     * Match all request paths except for the ones starting with:
-     * - api/seed-production (database seeding)
-     * - api/setup-production (database setup)
-     * - api/auth (authentication)
-     * - api/contact (contact form)
+     * Match all request paths except for:
+     * - api (all API routes)
      * - _next/static (static files)
      * - _next/image (image optimization files)
      * - favicon.ico (favicon file)
      * - public folder
      */
-    "/((?!api/seed-production|api/setup-production|api/auth|api/contact|_next/static|_next/image|favicon.ico|public).*)",
+    "/((?!api|_next/static|_next/image|favicon.ico|public).*)",
   ],
 };
