@@ -17,7 +17,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
       return createErrorResponse("Invalid prescription ID", 400);
     }
 
-    const { status, rejectedReason, trackingNumber } = await req.json();
+    const { status, rejectedReason, trackingNumber, amount, staffId } = await req.json();
 
     // Validate status
     const validStatuses = ['pending', 'approved', 'rejected', 'ready_to_ship', 'dispatched', 'delivered'];
@@ -35,12 +35,51 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
       return createErrorResponse("Prescription not found", 404);
     }
 
-    // Build update data (using only available fields for now)
+    // Build update data
     const updateData: any = {};
 
     if (status) {
       updateData.status = status;
-      // Note: Additional fields like approvedBy, approvedAt will be added when schema is fully updated
+      
+      // If approving, record approval details
+      if (status === 'approved') {
+        updateData.approvedBy = parseInt(user.id);
+        updateData.approvedAt = new Date();
+      }
+      
+      // If rejecting, record rejection reason
+      if (status === 'rejected' && rejectedReason) {
+        updateData.rejectedReason = rejectedReason;
+      }
+    }
+
+    // Admin can update price/amount
+    if (amount !== undefined) {
+      if (amount < 0) {
+        return createErrorResponse("Amount must be a positive number", 400);
+      }
+      updateData.amount = parseFloat(amount.toString());
+    }
+
+    // Admin can assign to staff
+    if (staffId !== undefined) {
+      if (staffId) {
+        // Verify staff exists
+        const staffRecord = await prisma.staff.findUnique({
+          where: { id: parseInt(staffId) }
+        });
+        if (!staffRecord) {
+          return createErrorResponse("Staff member not found", 404);
+        }
+        updateData.staffId = parseInt(staffId);
+      } else {
+        updateData.staffId = null;
+      }
+    }
+
+    // Admin can update tracking number
+    if (trackingNumber) {
+      updateData.trackingNumber = trackingNumber;
     }
 
     // Update prescription

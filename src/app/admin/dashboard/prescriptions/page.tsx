@@ -49,6 +49,9 @@ export default function PrescriptionsPage() {
   const [actionLoading, setActionLoading] = useState(false);
   const [trackingNumber, setTrackingNumber] = useState('');
   const [rejectionReason, setRejectionReason] = useState('');
+  const [isPriceModalOpen, setIsPriceModalOpen] = useState(false);
+  const [newPrice, setNewPrice] = useState('');
+  const [selectedPrescriptionForPrice, setSelectedPrescriptionForPrice] = useState<Prescription | null>(null);
 
   // Redirect if not admin
   useEffect(() => {
@@ -162,6 +165,50 @@ export default function PrescriptionsPage() {
     }
   };
 
+  // Handle price update
+  const handlePriceUpdate = async () => {
+    if (!selectedPrescriptionForPrice || !newPrice) {
+      setError('Please enter a valid price');
+      return;
+    }
+
+    try {
+      setActionLoading(true);
+      const price = parseFloat(newPrice);
+      
+      if (isNaN(price) || price <= 0) {
+        setError('Please enter a valid positive number');
+        return;
+      }
+
+      const response = await fetch(`/api/admin/prescriptions/${selectedPrescriptionForPrice.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        credentials: 'include',
+        body: JSON.stringify({ amount: price })
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        // Refresh the prescriptions list
+        fetchPrescriptions(pagination?.currentPage || 1);
+        setIsPriceModalOpen(false);
+        setSelectedPrescriptionForPrice(null);
+        setNewPrice('');
+        setError('');
+      } else {
+        setError(data.message || 'Failed to update price');
+      }
+    } catch (err) {
+      setError('Failed to update price');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
   const getStatusBadgeColor = (status: string) => {
     switch (status) {
       case 'pending': return 'bg-yellow-100 text-yellow-800';
@@ -206,14 +253,14 @@ export default function PrescriptionsPage() {
               placeholder="Search by customer name, email, or medicine..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-black"
             />
           </div>
           <div>
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-black"
             >
               <option value="">All Status</option>
               <option value="pending">Pending</option>
@@ -298,6 +345,16 @@ export default function PrescriptionsPage() {
                           className="text-blue-600 hover:text-blue-900"
                         >
                           View/Edit
+                        </button>
+                        <button
+                          onClick={() => {
+                            setSelectedPrescriptionForPrice(prescription);
+                            setNewPrice(prescription.amount.toString());
+                            setIsPriceModalOpen(true);
+                          }}
+                          className="text-green-600 hover:text-green-900"
+                        >
+                          Update Price
                         </button>
                         {prescription.status === 'approved' && prescription.paymentStatus === 'unpaid' && (
                           <button
@@ -482,7 +539,7 @@ export default function PrescriptionsPage() {
                           placeholder="Enter tracking number"
                           value={trackingNumber}
                           onChange={(e) => setTrackingNumber(e.target.value)}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-black"
                         />
                         <button
                           onClick={() => handleStatusChange(selectedPrescription.id, 'dispatched')}
@@ -520,6 +577,64 @@ export default function PrescriptionsPage() {
                   Close
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Price Update Modal */}
+      {isPriceModalOpen && selectedPrescriptionForPrice && (
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+          <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+            <h3 className="text-lg font-bold text-gray-900 mb-4">
+              Update Prescription Price
+            </h3>
+            
+            <div className="mb-4">
+              <p className="text-sm text-gray-600 mb-2">
+                <strong>Customer:</strong> {selectedPrescriptionForPrice.user.name}
+              </p>
+              <p className="text-sm text-gray-600 mb-2">
+                <strong>Medicine:</strong> {selectedPrescriptionForPrice.medicine}
+              </p>
+              <p className="text-sm text-gray-600 mb-4">
+                <strong>Current Price:</strong> £{selectedPrescriptionForPrice.amount.toFixed(2)}
+              </p>
+            </div>
+
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                New Price (£)
+              </label>
+              <input
+                type="number"
+                step="0.01"
+                min="0"
+                value={newPrice}
+                onChange={(e) => setNewPrice(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-black"
+                placeholder="Enter new price"
+              />
+            </div>
+
+            <div className="flex justify-end space-x-3">
+              <button
+                onClick={() => {
+                  setIsPriceModalOpen(false);
+                  setSelectedPrescriptionForPrice(null);
+                  setNewPrice('');
+                }}
+                className="bg-gray-500 text-white px-4 py-2 rounded-md hover:bg-gray-600"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handlePriceUpdate}
+                disabled={actionLoading || !newPrice}
+                className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 disabled:opacity-50"
+              >
+                {actionLoading ? 'Updating...' : 'Update Price'}
+              </button>
             </div>
           </div>
         </div>

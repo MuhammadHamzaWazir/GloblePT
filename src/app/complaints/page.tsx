@@ -143,7 +143,7 @@ export default function ComplaintsPage() {
                   value={formData.title}
                   onChange={handleChange}
                   placeholder="Brief summary of your complaint"
-                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-black"
                   required
                 />
               </div>
@@ -157,7 +157,7 @@ export default function ComplaintsPage() {
                   name="category"
                   value={formData.category}
                   onChange={handleChange}
-                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-black"
                 >
                   <option value="service">Service Issue</option>
                   <option value="staff">Staff Behavior</option>
@@ -176,7 +176,7 @@ export default function ComplaintsPage() {
                   name="priority"
                   value={formData.priority}
                   onChange={handleChange}
-                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-black"
                 >
                   <option value="low">Low - General feedback</option>
                   <option value="medium">Medium - Moderate concern</option>
@@ -196,7 +196,7 @@ export default function ComplaintsPage() {
                   onChange={handleChange}
                   placeholder="Please provide a detailed description of your complaint, including when it occurred, who was involved, and what outcome you're seeking..."
                   rows={6}
-                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-black"
                   required
                 />
                 <p className="mt-2 text-sm text-gray-500">

@@ -17,7 +17,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
       return createErrorResponse("Invalid prescription ID", 400);
     }
 
-    const { status, trackingNumber, notes } = await req.json();
+    const { status, trackingNumber, notes, amount } = await req.json();
 
     // Check if prescription exists
     const existingPrescription = await prisma.prescription.findUnique({
@@ -57,6 +57,20 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
     // Staff can add notes or tracking information
     if (trackingNumber) {
       updateData.trackingNumber = trackingNumber;
+    }
+
+    // Staff can update price/amount for approved prescriptions
+    if (amount !== undefined) {
+      if (amount < 0) {
+        return createErrorResponse("Amount must be a positive number", 400);
+      }
+      
+      // Only allow price updates for approved prescriptions
+      if (existingPrescription.status !== 'approved') {
+        return createErrorResponse("Can only update price for approved prescriptions", 400);
+      }
+      
+      updateData.amount = parseFloat(amount.toString());
     }
 
     // Update prescription

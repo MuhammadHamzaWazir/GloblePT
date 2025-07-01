@@ -62,11 +62,39 @@ export default function AssistantPortal() {
         />
       </div>
       <form className="space-y-2 mb-4" onSubmit={handleSave}>
-        <input value={page} onChange={e => setPage(e.target.value)} placeholder="Page Path (e.g. /about)" className="input input-bordered w-full" required />
-        <input value={title} onChange={e => setTitle(e.target.value)} placeholder="Meta Title" className="input input-bordered w-full" required />
-        <input value={description} onChange={e => setDescription(e.target.value)} placeholder="Meta Description" className="input input-bordered w-full" required />
-        <input value={canonical} onChange={e => setCanonical(e.target.value)} placeholder="Canonical URL (optional)" className="input input-bordered w-full" />
-        <button type="submit" className="btn btn-primary w-full">Save</button>
+        <input 
+          value={page} 
+          onChange={e => setPage(e.target.value)} 
+          placeholder="Page Path (e.g. /about)" 
+          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-black" 
+          required 
+        />
+        <input 
+          value={title} 
+          onChange={e => setTitle(e.target.value)} 
+          placeholder="Meta Title" 
+          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-black" 
+          required 
+        />
+        <input 
+          value={description} 
+          onChange={e => setDescription(e.target.value)} 
+          placeholder="Meta Description" 
+          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-black" 
+          required 
+        />
+        <input 
+          value={canonical} 
+          onChange={e => setCanonical(e.target.value)} 
+          placeholder="Canonical URL (optional)" 
+          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-black" 
+        />
+        <button 
+          type="submit" 
+          className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+        >
+          Save
+        </button>
       </form>
       {loading ? <div>Loading...</div> : (
         <table className="table w-full">

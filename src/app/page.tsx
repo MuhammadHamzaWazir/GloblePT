@@ -191,9 +191,9 @@ export default function Home() {
           <h2 className="text-3xl font-bold text-green-800 mb-8 text-center animate-pop-in">Have a Complaint?</h2>
           <p className="text-lg text-green-800 mb-6 text-center">We value your feedback. Please let us know if you have any issues or suggestions. Our team will review your complaint and get back to you promptly.</p>
           <form className="bg-white rounded-xl shadow-lg p-8 space-y-6 animate-fade-in-delay" method="POST" action="/api/complaints">
-            <input type="text" name="name" placeholder="Your Name" className="w-full border-b-2 border-green-300 focus:border-green-800 outline-none py-2 px-3 text-lg transition-all" required />
-            <input type="email" name="email" placeholder="Your Email" className="w-full border-b-2 border-green-300 focus:border-green-800 outline-none py-2 px-3 text-lg transition-all" required />
-            <textarea name="message" placeholder="Your Complaint" className="w-full border-b-2 border-green-300 focus:border-green-800 outline-none py-2 px-3 text-lg transition-all" rows={4} required />
+            <input type="text" name="name" placeholder="Your Name" className="w-full border-b-2 border-green-300 focus:border-green-800 outline-none py-2 px-3 text-lg transition-all text-black" required />
+            <input type="email" name="email" placeholder="Your Email" className="w-full border-b-2 border-green-300 focus:border-green-800 outline-none py-2 px-3 text-lg transition-all text-black" required />
+            <textarea name="message" placeholder="Your Complaint" className="w-full border-b-2 border-green-300 focus:border-green-800 outline-none py-2 px-3 text-lg transition-all text-black" rows={4} required />
             <button type="submit" className="w-full bg-green-800 hover:bg-green-900 text-white py-3 rounded-full font-semibold text-lg shadow transition-all animate-bounce-in">Submit Complaint</button>
           </form>
         </div>
@@ -227,9 +227,9 @@ export default function Home() {
             Contact Us
           </h2>
           <form className="bg-white rounded-xl shadow-lg p-8 space-y-6 animate-fade-in-delay">
-            <input type="text" name="name" placeholder="Your Name" className="w-full border-b-2 border-green-300 focus:border-green-800 outline-none py-2 px-3 text-lg transition-all" required />
-            <input type="email" name="email" placeholder="Your Email" className="w-full border-b-2 border-green-300 focus:border-green-800 outline-none py-2 px-3 text-lg transition-all" required />
-            <textarea name="message" placeholder="Your Message" className="w-full border-b-2 border-green-300 focus:border-green-800 outline-none py-2 px-3 text-lg transition-all" rows={4} required />
+            <input type="text" name="name" placeholder="Your Name" className="w-full border-b-2 border-green-300 focus:border-green-800 outline-none py-2 px-3 text-lg transition-all text-black" required />
+            <input type="email" name="email" placeholder="Your Email" className="w-full border-b-2 border-green-300 focus:border-green-800 outline-none py-2 px-3 text-lg transition-all text-black" required />
+            <textarea name="message" placeholder="Your Message" className="w-full border-b-2 border-green-300 focus:border-green-800 outline-none py-2 px-3 text-lg transition-all text-black" rows={4} required />
             <button type="submit" className="w-full bg-green-800 hover:bg-green-900 text-white py-3 rounded-full font-semibold text-lg shadow transition-all animate-bounce-in">Send Message</button>
           </form>
         </div>

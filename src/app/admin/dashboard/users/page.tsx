@@ -246,7 +246,7 @@ export default function UsersPage() {
             placeholder="Search users by name, email, or role..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-black"
           />
         </div>
         <div className="flex items-center gap-2">
@@ -421,7 +421,7 @@ export default function UsersPage() {
                   name="name"
                   value={formData.name}
                   onChange={handleInputChange}
-                  className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500"
+                  className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 text-black"
                   required
                 />
               </div>
@@ -432,7 +432,7 @@ export default function UsersPage() {
                   name="email"
                   value={formData.email}
                   onChange={handleInputChange}
-                  className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500"
+                  className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 text-black"
                   required
                 />
               </div>
@@ -443,7 +443,7 @@ export default function UsersPage() {
                   value={formData.address}
                   onChange={handleInputChange}
                   rows={3}
-                  className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500"
+                  className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 text-black"
                   required
                 />
               </div>
@@ -456,7 +456,7 @@ export default function UsersPage() {
                   name="password"
                   value={formData.password}
                   onChange={handleInputChange}
-                  className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500"
+                  className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 text-black"
                   {...(!currentUser && { required: true })}
                 />
               </div>
@@ -466,7 +466,7 @@ export default function UsersPage() {
                   name="roleId"
                   value={formData.roleId}
                   onChange={handleInputChange}
-                  className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500"
+                  className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 text-black"
                 >
                   <option value={0}>Select a role</option>
                   {roles.map(role => (
@@ -482,7 +482,7 @@ export default function UsersPage() {
                   name="supervisorId"
                   value={formData.supervisorId}
                   onChange={handleInputChange}
-                  className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500"
+                  className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 text-black"
                 >
                   <option value={0}>Select a supervisor</option>
                   {users

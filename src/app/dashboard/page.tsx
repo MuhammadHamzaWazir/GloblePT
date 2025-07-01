@@ -129,7 +129,7 @@ export default function UserDashboard() {
                 value={desc} 
                 onChange={e => setDesc(e.target.value)} 
                 placeholder="Describe your prescription requirements..." 
-                className="w-full border-2 border-green-300 focus:border-green-600 outline-none py-3 px-4 rounded-lg transition-all"
+                className="w-full border-2 border-green-300 focus:border-green-600 outline-none py-3 px-4 rounded-lg transition-all text-black"
                 rows={4}
                 required 
               />
@@ -143,7 +143,7 @@ export default function UserDashboard() {
                 value={address} 
                 onChange={e => setAddress(e.target.value)} 
                 placeholder="Your delivery address" 
-                className="w-full border-2 border-green-300 focus:border-green-600 outline-none py-3 px-4 rounded-lg transition-all"
+                className="w-full border-2 border-green-300 focus:border-green-600 outline-none py-3 px-4 rounded-lg transition-all text-black"
                 required 
               />
             </div>
@@ -156,7 +156,7 @@ export default function UserDashboard() {
                 value={imageUrl} 
                 onChange={e => setImageUrl(e.target.value)} 
                 placeholder="Upload image URL of your prescription" 
-                className="w-full border-2 border-green-300 focus:border-green-600 outline-none py-3 px-4 rounded-lg transition-all"
+                className="w-full border-2 border-green-300 focus:border-green-600 outline-none py-3 px-4 rounded-lg transition-all text-black"
               />
             </div>
             
