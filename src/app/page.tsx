@@ -49,16 +49,31 @@ export default function Home() {
             <h2 className="text-3xl font-bold text-green-800 mb-2 animate-pop-in">
               About Global Pharma Trading
             </h2>
-            <p className="text-lg text-green-800 mb-2">
+            <p className="text-lg text-green-800 mb-4">
               Global Pharma Trading is dedicated to providing exceptional pharmacy
-              services with a personal touch. Our team of licensed pharmacists and
-              staff are committed to your health and well-being, offering expert
-              advice, fast prescription fulfillment, and a wide range of healthcare
-              products.
+              services with a personal touch. Under the leadership of Director 
+              <strong> Usamah Patel</strong>, our team of licensed pharmacists and
+              staff are committed to your health and well-being.
             </p>
+            <div className="bg-green-50 p-4 rounded-lg mb-4">
+              <h3 className="font-semibold text-green-800 mb-2">Superintendent Pharmacist</h3>
+              <p className="text-green-700">
+                <a href="https://www.pharmacyregulation.org/registers/pharmacist/2073649" 
+                   target="_blank" 
+                   className="text-blue-600 hover:underline font-semibold">
+                  <strong>Frederick Osei Akomeah</strong>
+                </a><br/>
+                Registration No: 2073649<br/>
+                <a href="https://www.pharmacyregulation.org/registers/pharmacist/2073649" 
+                   target="_blank" 
+                   className="text-blue-600 hover:underline">
+                  View NHS Registration →
+                </a>
+              </p>
+            </div>
             <ul className="text-green-800 text-base space-y-1">
               <li>✔️ Trusted by thousands of families</li>
-              <li>✔️ 24/7 prescription support</li>
+              <li>✔️ Expert pharmaceutical care</li>
               <li>✔️ Free health consultations</li>
               <li>✔️ Modern, friendly environment</li>
             </ul>
@@ -95,6 +110,81 @@ export default function Home() {
           </div>
         </div>
       </section>
+      
+      {/* Contact Information Section */}
+      <section className="w-full bg-white py-16 px-4 animate-fade-in-delay">
+        <div className="max-w-6xl mx-auto">
+          <h2 className="text-3xl font-bold text-green-800 mb-12 text-center animate-pop-in">
+            Visit Us & Get In Touch
+          </h2>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
+            {/* Contact Details */}
+            <div className="space-y-8">
+              <div className="bg-green-50 rounded-xl p-6">
+                <h3 className="text-xl font-semibold text-green-800 mb-4">📍 Our Location</h3>
+                <p className="text-green-700 text-lg mb-2">
+                  <strong>Unit 42b Bowlers Croft</strong><br/>
+                  Basildon, Essex<br/>
+                  SS14 3ED
+                </p>
+              </div>
+              
+              <div className="bg-blue-50 rounded-xl p-6">
+                <h3 className="text-xl font-semibold text-green-800 mb-4">🕒 Opening Hours</h3>
+                <p className="text-green-700 text-lg">
+                  <strong>Monday - Friday:</strong> 9:00 AM - 5:00 PM<br/>
+                  <strong>Saturday & Sunday:</strong> Closed
+                </p>
+              </div>
+              
+              <div className="bg-green-50 rounded-xl p-6">
+                <h3 className="text-xl font-semibold text-green-800 mb-4">📞 Contact Details</h3>
+                <p className="text-green-700 text-lg">
+                  <strong>Phone:</strong> <a href="tel:07950938398" className="text-blue-600 hover:underline">07950 938398</a><br/>
+                  <strong>Email:</strong> <a href="mailto:info@globalpharmatrading.co.uk" className="text-blue-600 hover:underline">info@globalpharmatrading.co.uk</a>
+                </p>
+              </div>
+              
+              {/* GPhC Registration */}
+              <div className="bg-blue-50 rounded-xl p-6 flex items-center gap-4">
+                <Image 
+                  src="/assets/gphc-logo.svg" 
+                  alt="GPhC Registered Pharmacy" 
+                  width={80} 
+                  height={40}
+                  className="flex-shrink-0"
+                />
+                <div>
+                  <h3 className="text-lg font-semibold text-green-800">GPhC Registered Pharmacy</h3>
+                  <p className="text-green-700">Regulated by the General Pharmaceutical Council</p>
+                </div>
+              </div>
+            </div>
+            
+            {/* Google Map */}
+            <div className="bg-gray-100 rounded-xl p-2">
+              <iframe
+                src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d2484.123456789!2d0.4891!3d51.5631!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2sUnit%2042b%20Bowlers%20Croft%2C%20Basildon%2C%20Essex%20SS14%203ED!5e0!3m2!1sen!2suk!4v1625097600000"
+                width="100%"
+                height="400"
+                style={{ border: 0, borderRadius: '8px' }}
+                allowFullScreen
+                loading="lazy"
+                referrerPolicy="no-referrer-when-downgrade"
+                title="Global Pharma Trading Location - Unit 42b Bowlers Croft, Basildon"
+              ></iframe>
+              <p className="text-center text-sm text-gray-600 mt-2">
+                <a href="https://maps.google.com/?q=Unit+42b+Bowlers+Croft,+Basildon,+Essex,+SS14+3ED" 
+                   target="_blank" 
+                   className="text-blue-600 hover:underline">
+                  📍 Open in Google Maps
+                </a>
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* Complaint Section */}
       <section className="w-full bg-white/90 py-16 px-4 animate-fade-in-delay">
         <div className="max-w-xl mx-auto">

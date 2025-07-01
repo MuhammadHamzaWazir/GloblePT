@@ -8,7 +8,7 @@
 async function initializeDatabase() {
   console.log('🚀 Initializing production database...');
   
-  const BASE_URL = 'https://pharmacy-management-system-2ul029pt1.vercel.app';
+  const BASE_URL = 'https://pharmacy-management-system-2v8qig04k.vercel.app';
   
   try {
     // Try to make a simple GET request first

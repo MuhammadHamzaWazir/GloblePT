@@ -21,6 +21,8 @@
     "test:api": "node scripts/test-all-apis.js",
     "deploy:setup": "npm run db:generate && npm run db:migrate:deploy && npm run db:seed:prod",
     "deploy:godaddy": "node scripts/deploy-godaddy.js",
+    "build:static": "node scripts/generate-static-export.js",
+    "configure:godaddy": "node scripts/configure-godaddy-domain.js",
     "postinstall": "prisma generate",
     "vercel-build": "prisma generate && next build"
   },
@@ -37,7 +39,9 @@
     "chart.js": "^4.5.0",
     "clsx": "^2.1.1",
     "jsonwebtoken": "^9.0.2",
+    "mysql2": "^3.14.1",
     "next": "15.3.4",
+    "node-fetch": "^3.3.2",
     "nodemailer": "^7.0.4",
     "react": "^19.0.0",
     "react-chartjs-2": "^5.3.0",

@@ -17,13 +17,13 @@ async function runMigrations() {
     process.chdir(projectRoot);
     
     console.log('📍 Working directory:', process.cwd());
-    console.log('🔧 DATABASE_URL:', process.env.DATABASE_URL ? 'Set' : 'Not set');
     
-    if (!process.env.DATABASE_URL) {
-      console.error('❌ DATABASE_URL environment variable is not set!');
-      console.log('Please set your DATABASE_URL and try again.');
-      process.exit(1);
-    }
+    // Set the DATABASE_URL for Railway production database
+    const DATABASE_URL = "mysql://root:aSJaTqBawFjJzCvUyZuUiobxXaTaTfpu@nozomi.proxy.rlwy.net:54948/railway";
+    process.env.DATABASE_URL = DATABASE_URL;
+    
+    console.log('🔧 DATABASE_URL: Set to Railway production database');
+    console.log('🔗 Database host: nozomi.proxy.rlwy.net:54948');
     
     // Run Prisma migrations
     console.log('⚡ Applying database migrations...');

@@ -212,21 +212,49 @@ export default function ContactPage() {
               </button>
             </form>
 
-            <div className="mt-8 pt-6 border-t border-gray-200 text-center">
-              <h3 className="text-lg font-semibold text-gray-800 mb-4">Other Ways to Reach Us</h3>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-                <div>
-                  <div className="font-semibold text-gray-700">Phone</div>
-                  <div className="text-gray-600">+44 123 456 7890</div>
+            <div className="mt-8 pt-6 border-t border-gray-200">
+              <h3 className="text-lg font-semibold text-gray-800 mb-6 text-center">Visit Our Pharmacy</h3>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="bg-green-50 rounded-lg p-4">
+                  <h4 className="font-semibold text-green-800 mb-2">📍 Location</h4>
+                  <p className="text-gray-700">
+                    <strong>Unit 42b Bowlers Croft</strong><br/>
+                    Basildon, Essex<br/>
+                    SS14 3ED
+                  </p>
+                  <p className="mt-2">
+                    <a href="https://maps.google.com/?q=Unit+42b+Bowlers+Croft,+Basildon,+Essex,+SS14+3ED" 
+                       target="_blank" 
+                       className="text-blue-600 hover:underline">
+                      📍 View on Google Maps
+                    </a>
+                  </p>
                 </div>
-                <div>
-                  <div className="font-semibold text-gray-700">Email</div>
-                  <div className="text-gray-600">info@globalpharmacy.com</div>
+                
+                <div className="bg-blue-50 rounded-lg p-4">
+                  <h4 className="font-semibold text-green-800 mb-2">📞 Contact Details</h4>
+                  <p className="text-gray-700">
+                    <strong>Phone:</strong> <a href="tel:07950938398" className="text-blue-600 hover:underline">07950 938398</a><br/>
+                    <strong>Email:</strong> <a href="mailto:info@globalpharmatrading.co.uk" className="text-blue-600 hover:underline">info@globalpharmatrading.co.uk</a>
+                  </p>
                 </div>
-                <div>
-                  <div className="font-semibold text-gray-700">Address</div>
-                  <div className="text-gray-600">123 Pharmacy Street<br />London, UK</div>
-                </div>
+              </div>
+              
+              <div className="bg-gray-50 rounded-lg p-4 mt-4 text-center">
+                <h4 className="font-semibold text-green-800 mb-2">🕒 Opening Hours</h4>
+                <p className="text-gray-700">
+                  <strong>Monday - Friday:</strong> 9:00 AM - 5:00 PM<br/>
+                  <strong>Saturday & Sunday:</strong> Closed
+                </p>
+              </div>
+              
+              <div className="mt-4 text-center">
+                <p className="text-sm text-gray-600 mb-2">
+                  <strong>Director:</strong> Usamah Patel | 
+                  <strong> Superintendent:</strong> <a href="https://www.pharmacyregulation.org/registers/pharmacist/2073649" target="_blank" className="text-blue-600 hover:underline">Frederick Osei Akomeah</a> (Reg: 2073649)
+                </p>
+                <p className="text-xs text-gray-500">GPhC Registered Pharmacy</p>
               </div>
             </div>
           </div>

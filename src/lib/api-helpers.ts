@@ -38,7 +38,7 @@ export function handleApiError(error: unknown): NextResponse<ApiResponse> {
 /**
  * Validate required fields in request body
  */
-export function validateRequiredFields(body: any, requiredFields: string[]): string | null {
+export function validateRequiredFields(body: Record<string, unknown>, requiredFields: string[]): string | null {
   for (const field of requiredFields) {
     if (!body[field]) {
       return `${field} is required`
@@ -50,10 +50,10 @@ export function validateRequiredFields(body: any, requiredFields: string[]): str
 /**
  * Parse request body safely
  */
-export async function parseRequestBody(request: Request): Promise<any> {
+export async function parseRequestBody(request: Request): Promise<Record<string, unknown>> {
   try {
     return await request.json()
-  } catch (error) {
+  } catch {
     throw new Error('Invalid JSON in request body')
   }
 }

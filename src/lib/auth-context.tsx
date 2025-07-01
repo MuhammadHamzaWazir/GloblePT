@@ -1,7 +1,7 @@
 'use client';
 
 import { createContext, useContext, useState, ReactNode, useEffect } from 'react';
-import { setCookie, deleteCookie, getCookie } from './cookie';
+import { deleteCookie } from './cookie';
 
 export type UserRole = 'admin' | 'staff' | 'assistant' | 'customer';
 
@@ -46,6 +46,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       } catch (error) {
         console.log('Auth check failed:', error);
         // User not authenticated, which is fine
+        setUser(null);
       }
     };
 
@@ -74,7 +75,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           const errorData = await res.json();
           console.log("Error response data:", errorData);
           errorMessage = errorData.message || errorMessage;
-        } catch (e) {
+        } catch {
           // If we can't parse the error response, use default message
           errorMessage = `Login failed with status ${res.status}`;
         }

@@ -1,4 +1,3 @@
-import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "../lib/auth-context";
@@ -7,6 +6,11 @@ import { SEOSetting } from "../lib/types";
 import { Suspense } from "react";
 import MainHeader from "./components/MainHeader";
 import MainFooter from "./components/MainFooter";
+
+export const metadata = {
+  title: "Global Pharma Trading - Online Pharmacy Management",
+  description: "Professional pharmacy management system for prescriptions, customer service, and healthcare solutions.",
+};
 
 const geistSans = Geist({
   variable: "--font-geist-sans",

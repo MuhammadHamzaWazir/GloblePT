@@ -60,7 +60,7 @@ model Complaint {
   
   // Complaint details
   title         String   @default("General Complaint")
-  description   String   @db.Text @default("No description provided")
+  description   String   @db.Text
   category      String   @default("service") // service, staff, product, delivery, billing
   priority      String   @default("medium")  // low, medium, high, urgent
   fileUrl       String?
@@ -83,7 +83,7 @@ model Complaint {
   
   // Timestamps
   createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt @default(now())
+  updatedAt     DateTime @updatedAt
 }
 
 model Staff {
@@ -109,7 +109,7 @@ model Prescription {
   dosage        String?
   instructions  String?
   quantity      Int      @default(1)
-  prescriptionText String @db.Text @default("") // Full prescription details
+  prescriptionText String? @db.Text // Full prescription details
   
   // Pricing and billing
   amount        Float
@@ -136,7 +136,7 @@ model Prescription {
   deliveredAt    DateTime?
   
   createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt @default(now())
+  updatedAt     DateTime @updatedAt
 }
 
 model Contact {
@@ -145,5 +145,5 @@ model Contact {
   email     String
   message   String   @db.Text
   createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt @default(now())
+  updatedAt DateTime @updatedAt
 }

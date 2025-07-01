@@ -1,6 +1,9 @@
 const { PrismaClient } = require('@prisma/client');
 const bcrypt = require('bcryptjs');
 
+// Set the Railway production database URL
+process.env.DATABASE_URL = "mysql://root:aSJaTqBawFjJzCvUyZuUiobxXaTaTfpu@nozomi.proxy.rlwy.net:54948/railway";
+
 const prisma = new PrismaClient();
 
 async function main() {
