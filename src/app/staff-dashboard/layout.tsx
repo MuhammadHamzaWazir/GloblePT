@@ -11,12 +11,14 @@ import {
   FaSignOutAlt,
   FaBars,
   FaTimes,
-  FaExclamationCircle
+  FaExclamationCircle,
+  FaUser
 } from "react-icons/fa";
 
 // Define the navigation links with icons
 const navItems = [
   { href: "/staff-dashboard", label: "Dashboard", icon: FaHome },
+  { href: "/staff-dashboard/profile", label: "My Profile", icon: FaUser },
   { href: "/staff-dashboard/prescriptions", label: "Prescriptions", icon: FaPrescriptionBottleAlt },
   { href: "/staff-dashboard/complaints", label: "Complaints", icon: FaExclamationCircle },
   { href: "/staff-dashboard/customers", label: "Customers", icon: FaUsers },
