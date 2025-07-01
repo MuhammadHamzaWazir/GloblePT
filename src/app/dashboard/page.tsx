@@ -19,6 +19,13 @@ interface Prescription {
   updatedAt: string;
 }
 
+interface MedicineItem {
+  name: string;
+  quantity: number;
+  dosage: string;
+  instructions: string;
+}
+
 export default function UserDashboard() {
   const { user } = useAuth();
   const router = useRouter();
@@ -26,8 +33,12 @@ export default function UserDashboard() {
   const [desc, setDesc] = useState('');
   const [address, setAddress] = useState('');
   const [imageUrl, setImageUrl] = useState('');
+  const [medicines, setMedicines] = useState<MedicineItem[]>([
+    { name: '', quantity: 1, dosage: '', instructions: '' }
+  ]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [paymentLoading, setPaymentLoading] = useState<number | null>(null);
 
   useEffect(() => {
     if (user) {
@@ -61,15 +72,28 @@ export default function UserDashboard() {
     e.preventDefault();
     if (!user) return;
     
+    // Validate medicines
+    const validMedicines = medicines.filter(med => med.name.trim() !== '');
+    if (validMedicines.length === 0) {
+      setError('Please add at least one medicine');
+      return;
+    }
+    
     try {
+      const medicineText = validMedicines
+        .map(med => `${med.name} - Qty: ${med.quantity}${med.dosage ? `, Dosage: ${med.dosage}` : ''}${med.instructions ? `, Instructions: ${med.instructions}` : ''}`)
+        .join('\n');
+      
       const res = await fetch('/api/prescriptions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
           userId: user.id, 
-          prescriptionText: desc, 
-          medicine: desc, // Using description as medicine for now
-          deliveryAddress: address 
+          prescriptionText: `${desc}\n\nMedicines:\n${medicineText}`, 
+          medicine: validMedicines[0].name, // Primary medicine
+          quantity: validMedicines.reduce((total, med) => total + med.quantity, 0), // Total quantity
+          deliveryAddress: address,
+          medicines: validMedicines
         }),
       });
       
@@ -83,6 +107,7 @@ export default function UserDashboard() {
         setDesc(''); 
         setAddress(''); 
         setImageUrl('');
+        setMedicines([{ name: '', quantity: 1, dosage: '', instructions: '' }]);
         setError('');
         // Refresh the prescriptions list
         fetchPrescriptions();
@@ -94,6 +119,94 @@ export default function UserDashboard() {
       console.error('Error submitting prescription:', err);
     }
   }
+
+  // Add new medicine item
+  const addMedicine = () => {
+    setMedicines([...medicines, { name: '', quantity: 1, dosage: '', instructions: '' }]);
+  };
+
+  // Remove medicine item
+  const removeMedicine = (index: number) => {
+    if (medicines.length > 1) {
+      setMedicines(medicines.filter((_, i) => i !== index));
+    }
+  };
+
+  // Update medicine item
+  const updateMedicine = (index: number, field: keyof MedicineItem, value: string | number) => {
+    const updated = medicines.map((medicine, i) => 
+      i === index ? { ...medicine, [field]: value } : medicine
+    );
+    setMedicines(updated);
+  };
+
+  // Handle payment
+  const handlePayment = async (prescriptionId: number) => {
+    try {
+      setPaymentLoading(prescriptionId);
+      
+      const response = await fetch(`/api/prescriptions/${prescriptionId}/payment`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        // Update the prescription status locally
+        setPrescriptions(prescriptions.map(p => 
+          p.id === prescriptionId 
+            ? { ...p, paymentStatus: 'paid', status: 'paid' }
+            : p
+        ));
+        alert('Payment successful!');
+      } else {
+        alert(data.message || 'Payment failed');
+      }
+    } catch (error) {
+      console.error('Payment error:', error);
+      alert('Payment failed. Please try again.');
+    } finally {
+      setPaymentLoading(null);
+    }
+  };
+
+  // Handle prescription cancellation
+  const handleCancel = async (prescriptionId: number) => {
+    if (!confirm('Are you sure you want to cancel this prescription?')) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/prescriptions/${prescriptionId}/cancel`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        // Update the prescription status locally
+        setPrescriptions(prescriptions.map(p => 
+          p.id === prescriptionId 
+            ? { ...p, status: 'cancelled' }
+            : p
+        ));
+        alert('Prescription cancelled successfully');
+      } else {
+        alert(data.message || 'Failed to cancel prescription');
+      }
+    } catch (error) {
+      console.error('Cancel error:', error);
+      alert('Failed to cancel prescription. Please try again.');
+    }
+  };
 
   if (!user) {
     return (
@@ -160,6 +273,64 @@ export default function UserDashboard() {
               />
             </div>
             
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Medicines
+              </label>
+              {medicines.map((medicine, index) => (
+                <div key={index} className="flex gap-4 mb-4">
+                  <input 
+                    type="text" 
+                    value={medicine.name} 
+                    onChange={e => updateMedicine(index, 'name', e.target.value)} 
+                    placeholder="Medicine name" 
+                    className="flex-1 border-2 border-green-300 focus:border-green-600 outline-none py-3 px-4 rounded-lg transition-all text-black"
+                    required
+                  />
+                  <input 
+                    type="number" 
+                    value={medicine.quantity} 
+                    onChange={e => updateMedicine(index, 'quantity', +e.target.value)} 
+                    placeholder="Quantity" 
+                    className="w-24 border-2 border-green-300 focus:border-green-600 outline-none py-3 px-4 rounded-lg transition-all text-black"
+                    min="1"
+                    required
+                  />
+                  <input 
+                    type="text" 
+                    value={medicine.dosage} 
+                    onChange={e => updateMedicine(index, 'dosage', e.target.value)} 
+                    placeholder="Dosage (optional)" 
+                    className="w-32 border-2 border-green-300 focus:border-green-600 outline-none py-3 px-4 rounded-lg transition-all text-black"
+                  />
+                  <input 
+                    type="text" 
+                    value={medicine.instructions} 
+                    onChange={e => updateMedicine(index, 'instructions', e.target.value)} 
+                    placeholder="Instructions (optional)" 
+                    className="flex-1 border-2 border-green-300 focus:border-green-600 outline-none py-3 px-4 rounded-lg transition-all text-black"
+                  />
+                  {medicines.length > 1 && (
+                    <button 
+                      type="button" 
+                      onClick={() => removeMedicine(index)} 
+                      className="bg-red-600 hover:bg-red-700 text-white py-3 px-4 rounded-lg font-semibold shadow transition-all"
+                    >
+                      Remove
+                    </button>
+                  )}
+                </div>
+              ))}
+              
+              <button 
+                type="button" 
+                onClick={addMedicine} 
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-lg font-semibold text-lg shadow transition-all"
+              >
+                + Add Another Medicine
+              </button>
+            </div>
+            
             <button 
               type="submit" 
               className="w-full bg-green-600 hover:bg-green-700 text-white py-3 rounded-lg font-semibold text-lg shadow transition-all"
@@ -193,6 +364,7 @@ export default function UserDashboard() {
                     <th className="border border-green-200 px-4 py-3 text-left text-green-800 font-semibold">Status</th>
                     <th className="border border-green-200 px-4 py-3 text-left text-green-800 font-semibold">Payment</th>
                     <th className="border border-green-200 px-4 py-3 text-left text-green-800 font-semibold">Date</th>
+                    <th className="border border-green-200 px-4 py-3 text-left text-green-800 font-semibold">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -222,6 +394,37 @@ export default function UserDashboard() {
                         </span>
                       </td>
                       <td className="border border-green-200 px-4 py-3">{new Date(rx.createdAt).toLocaleDateString()}</td>
+                      <td className="border border-green-200 px-4 py-3">
+                        {rx.status === 'approved' && rx.paymentStatus === 'unpaid' && (
+                          <>
+                            <button 
+                              onClick={() => handlePayment(rx.id)} 
+                              className="bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded-lg font-semibold text-sm shadow transition-all mr-2"
+                              disabled={paymentLoading === rx.id}
+                            >
+                              {paymentLoading === rx.id ? 'Processing...' : 'Pay Now'}
+                            </button>
+                            <button 
+                              onClick={() => handleCancel(rx.id)} 
+                              className="bg-red-600 hover:bg-red-700 text-white py-2 px-4 rounded-lg font-semibold text-sm shadow transition-all"
+                            >
+                              Cancel
+                            </button>
+                          </>
+                        )}
+                        {rx.status === 'paid' && (
+                          <span className="text-green-600 font-semibold">Payment Complete</span>
+                        )}
+                        {rx.status === 'pending' && (
+                          <span className="text-gray-600">Awaiting Approval</span>
+                        )}
+                        {rx.status === 'cancelled' && (
+                          <span className="text-red-600">Cancelled</span>
+                        )}
+                        {(rx.status === 'dispatched' || rx.status === 'delivered') && (
+                          <span className="text-blue-600">In Transit/Delivered</span>
+                        )}
+                      </td>
                     </tr>
                   ))}
                 </tbody>

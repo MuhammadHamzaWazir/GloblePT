@@ -33,11 +33,35 @@ export async function POST(req: NextRequest) {
       return createErrorResponse("Unauthorized access", 401);
     }
 
-    const { medicine, dosage, instructions, quantity, prescriptionText, deliveryAddress } = await req.json();
+    const { medicine, dosage, instructions, quantity, prescriptionText, deliveryAddress, medicines } = await req.json();
 
     // Validate required fields
-    if (!medicine || !prescriptionText || !deliveryAddress) {
-      return createErrorResponse("Medicine, prescription details, and delivery address are required", 400);
+    if (!prescriptionText || !deliveryAddress) {
+      return createErrorResponse("Prescription details and delivery address are required", 400);
+    }
+
+    // Use medicines array if provided, otherwise fall back to single medicine
+    let primaryMedicine = medicine;
+    let totalQuantity = quantity || 1;
+    let medicineDetails = prescriptionText;
+
+    if (medicines && medicines.length > 0) {
+      const validMedicines = medicines.filter((med: any) => med.name && med.name.trim() !== '');
+      if (validMedicines.length > 0) {
+        primaryMedicine = validMedicines[0].name;
+        totalQuantity = validMedicines.reduce((total: number, med: any) => total + (med.quantity || 1), 0);
+        
+        // Create detailed medicine list in prescription text
+        const medicineList = validMedicines.map((med: any) => 
+          `${med.name} - Qty: ${med.quantity || 1}${med.dosage ? `, Dosage: ${med.dosage}` : ''}${med.instructions ? `, Instructions: ${med.instructions}` : ''}`
+        ).join('\n');
+        
+        medicineDetails = `${prescriptionText}\n\nRequested Medicines:\n${medicineList}`;
+      }
+    }
+
+    if (!primaryMedicine) {
+      return createErrorResponse("At least one medicine is required", 400);
     }
 
     // For now, set a default amount - in real app this would be calculated
@@ -46,11 +70,11 @@ export async function POST(req: NextRequest) {
     const newPrescription = await prisma.prescription.create({
       data: {
         userId: parseInt(user.id),
-        medicine,
+        medicine: primaryMedicine,
         dosage: dosage || '',
         instructions: instructions || '',
-        quantity: quantity || 1,
-        prescriptionText,
+        quantity: totalQuantity,
+        prescriptionText: medicineDetails,
         amount: estimatedAmount,
         deliveryAddress,
         status: 'pending',

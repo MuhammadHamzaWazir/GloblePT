@@ -394,9 +394,6 @@ export default function SupervisorDashboard() {
             <Link href="/staff-dashboard/prescriptions" className="block text-blue-600 hover:text-blue-800">
               → Staff Prescription Management
             </Link>
-            <Link href="/admin/dashboard/users" className="block text-blue-600 hover:text-blue-800">
-              → Manage Staff & Users
-            </Link>
           </div>
         </div>
 
