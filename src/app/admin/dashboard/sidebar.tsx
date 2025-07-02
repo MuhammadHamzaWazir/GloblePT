@@ -11,7 +11,9 @@ import {
   FaAddressBook, 
   FaChartLine,
   FaPrescriptionBottleAlt,
-  FaUser
+  FaUser,
+  FaShieldAlt,
+  FaIdCard
 } from "react-icons/fa";
 
 // Define the navigation links with icons
@@ -20,6 +22,7 @@ const navItems = [
   { href: "/admin/dashboard/profile", label: "My Profile", icon: FaUser },
   { href: "/admin/dashboard/users", label: "Users", icon: FaUsers },
   { href: "/admin/dashboard/prescriptions", label: "Prescriptions", icon: FaPrescriptionBottleAlt },
+  { href: "/admin/dashboard/identity-verification", label: "Identity Verification", icon: FaIdCard },
   { href: "/admin/dashboard/customers", label: "Customers", icon: FaUserFriends },
   { href: "/admin/dashboard/complaints", label: "Complaints", icon: FaExclamationCircle },
   { href: "/admin/dashboard/contacts", label: "Contacts", icon: FaAddressBook },

@@ -14,10 +14,40 @@ model User {
   password String
   address  String
   phone    String?
+  
+  // Identity Verification Fields
+  dateOfBirth DateTime?
   nationalInsuranceNumber String?
   nhsNumber String?
+  photoIdUrl String?  // Government-issued ID upload
+  addressProofUrl String?  // Utility bill/delivery record
+  identityVerified Boolean @default(false)
+  identityVerifiedAt DateTime?
+  identityVerifiedBy Int?
+  
+  // Age Verification
+  ageVerified Boolean @default(false)
+  ageVerificationMethod String? // "photo_id", "electronic", "in_person"
+  
+  // Two-Factor Authentication
+  twoFactorSecret String?
+  twoFactorEnabled Boolean @default(false)
+  twoFactorBackupCodes String? // JSON array of backup codes
+  
+  // Medical History & Capacity Assessment
+  medicalProfile MedicalProfile?
+  capacityAssessed Boolean @default(false)
+  capacityAssessedAt DateTime?
+  capacityAssessedBy Int?
+  
+  // Account Status
+  accountStatus String @default("pending") // pending, verified, suspended, blocked
+  verificationNotes String? @db.Text
+  
+  // Legacy fields
   file1Url String?
   file2Url String?
+  
   roleId   Int?
   role     Role?    @relation(fields: [roleId], references: [id])
   supervisorId Int?
@@ -28,6 +58,13 @@ model User {
   resolvedComplaints Complaint[] @relation("ComplaintResolver")
   prescriptions Prescription[]
   approvedPrescriptions Prescription[] @relation("PrescriptionApprover")
+  
+  // Identity verification relationships
+  identityVerifier User? @relation("IdentityVerifier", fields: [identityVerifiedBy], references: [id])
+  identityVerifications User[] @relation("IdentityVerifier")
+  capacityVerifier User? @relation("CapacityVerifier", fields: [capacityAssessedBy], references: [id])
+  capacityVerifications User[] @relation("CapacityVerifier")
+  
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -112,6 +149,22 @@ model Prescription {
   quantity      Int      @default(1)
   prescriptionText String? @db.Text // Full prescription details
   
+  // Medicine Classification (UK Pharmacy Law)
+  medicineType  String   @default("P") // "POM" (Prescription Only Medicine), "P" (Pharmacy Medicine), "GSL" (General Sale List)
+  requiresPrescription Boolean @default(false)
+  ageRestricted Boolean @default(false)
+  minimumAge    Int      @default(16) // Minimum age for purchase
+  
+  // Capacity Assessment for this prescription
+  capacityConfirmed Boolean @default(false)
+  riskAssessmentComplete Boolean @default(false)
+  pharmacistApprovalRequired Boolean @default(true)
+  
+  // Prescription validation (for POM)
+  prescribedBy  String? // Name of prescribing professional
+  prescriberGMC String? // GMC number or professional registration
+  prescriptionValidated Boolean @default(false)
+  
   // Pricing and billing
   amount        Float
   deliveryAddress String
@@ -145,6 +198,41 @@ model Contact {
   name      String
   email     String
   message   String   @db.Text
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model MedicalProfile {
+  id       Int      @id @default(autoincrement())
+  userId   Int      @unique
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Medical History
+  currentMedications String? @db.Text  // JSON array of current medications
+  allergies String? @db.Text          // JSON array of allergies
+  medicalConditions String? @db.Text   // JSON array of medical conditions
+  
+  // Pregnancy/Breastfeeding Status
+  isPregnant Boolean @default(false)
+  isBreastfeeding Boolean @default(false)
+  pregnancyDueDate DateTime?
+  
+  // Capacity Assessment Responses
+  understandsRisks Boolean @default(false)
+  canFollowInstructions Boolean @default(false)
+  hasDecisionCapacity Boolean @default(false)
+  
+  // Assessment by Pharmacist
+  assessedByPharmacist Boolean @default(false)
+  pharmacistNotes String? @db.Text
+  assessedAt DateTime?
+  assessedBy Int?
+  
+  // Emergency Contact
+  emergencyContactName String?
+  emergencyContactPhone String?
+  emergencyContactRelation String?
+  
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }

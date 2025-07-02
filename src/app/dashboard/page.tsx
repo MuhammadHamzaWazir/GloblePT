@@ -39,10 +39,16 @@ export default function UserDashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [paymentLoading, setPaymentLoading] = useState<number | null>(null);
+  const [identityStatus, setIdentityStatus] = useState({
+    hasPhotoId: false,
+    hasAddressProof: false,
+    verificationComplete: false
+  });
 
   useEffect(() => {
     if (user) {
       fetchPrescriptions();
+      checkIdentityStatus();
     } else {
       // Redirect to login if not authenticated
       router.push('/auth/login');
@@ -65,6 +71,22 @@ export default function UserDashboard() {
       console.error('Error fetching prescriptions:', err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const checkIdentityStatus = async () => {
+    try {
+      const response = await fetch('/api/users/profile');
+      if (response.ok) {
+        const data = await response.json();
+        setIdentityStatus({
+          hasPhotoId: !!data.user.file1Url,
+          hasAddressProof: !!data.user.file2Url,
+          verificationComplete: !!(data.user.file1Url && data.user.file2Url)
+        });
+      }
+    } catch (error) {
+      console.error('Failed to check identity status:', error);
     }
   };
 
@@ -224,11 +246,77 @@ export default function UserDashboard() {
       <div className="max-w-4xl mx-auto p-6">
         <h1 className="text-3xl font-bold text-green-800 mb-6">My Prescriptions Dashboard</h1>
         
+        {/* Identity Verification Alert */}
+        {!identityStatus.verificationComplete && (
+          <div className="bg-yellow-100 border border-yellow-400 text-yellow-800 px-6 py-4 rounded-lg mb-6">
+            <div className="flex items-start">
+              <div className="flex-shrink-0">
+                <svg className="w-5 h-5 text-yellow-500 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                </svg>
+              </div>
+              <div className="ml-3">
+                <h3 className="text-sm font-medium text-yellow-800">Identity Verification Required</h3>
+                <div className="mt-2 text-sm text-yellow-700">
+                  <p>To comply with UK pharmacy regulations, please complete your identity verification:</p>
+                  <ul className="mt-2 space-y-1">
+                    {!identityStatus.hasPhotoId && (
+                      <li className="flex items-center">
+                        <span className="w-2 h-2 bg-red-500 rounded-full mr-2"></span>
+                        Upload a government-issued photo ID (passport, driving license)
+                      </li>
+                    )}
+                    {!identityStatus.hasAddressProof && (
+                      <li className="flex items-center">
+                        <span className="w-2 h-2 bg-red-500 rounded-full mr-2"></span>
+                        Upload proof of address (utility bill, bank statement)
+                      </li>
+                    )}
+                  </ul>
+                  <div className="mt-3">
+                    <a 
+                      href="/profile"
+                      className="text-yellow-800 underline hover:text-yellow-900 font-medium"
+                    >
+                      Complete verification in your profile →
+                    </a>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+        
         {error && (
           <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-6">
             {error}
           </div>
         )}
+
+        {/* Identity Verification Status */}
+        <div className="bg-white rounded-xl shadow-lg p-6 mb-8">
+          <h2 className="text-xl font-semibold text-green-800 mb-4">Identity Verification Status</h2>
+          <div className="space-y-4">
+            <div className="flex justify-between">
+              <span className="text-gray-700">Photo ID Verified:</span>
+              <span className={`font-semibold ${identityStatus.hasPhotoId ? 'text-green-600' : 'text-red-600'}`}>
+                {identityStatus.hasPhotoId ? 'Yes' : 'No'}
+              </span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-gray-700">Address Proof Verified:</span>
+              <span className={`font-semibold ${identityStatus.hasAddressProof ? 'text-green-600' : 'text-red-600'}`}>
+                {identityStatus.hasAddressProof ? 'Yes' : 'No'}
+              </span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-gray-700">Verification Complete:</span>
+              <span className={`font-semibold ${identityStatus.verificationComplete ? 'text-green-600' : 'text-red-600'}`}>
+                {identityStatus.verificationComplete ? 'Yes' : 'No'}
+              </span>
+            </div>
+          </div>
+        </div>
 
         {/* Submit New Prescription Form */}
         <div className="bg-white rounded-xl shadow-lg p-6 mb-8">
@@ -329,6 +417,78 @@ export default function UserDashboard() {
               >
                 + Add Another Medicine
               </button>
+            </div>
+            
+            {/* Capacity Assessment & Medicine Safety */}
+            <div className="border-2 border-yellow-300 bg-yellow-50 p-4 rounded-lg">
+              <h3 className="font-semibold text-yellow-800 mb-3">🏥 Safety & Capacity Assessment</h3>
+              <p className="text-sm text-yellow-700 mb-4">
+                To ensure safe medication dispensing, please confirm the following:
+              </p>
+              
+              <div className="space-y-3">
+                <label className="flex items-start space-x-3">
+                  <input 
+                    type="checkbox" 
+                    className="w-5 h-5 text-green-600 mt-0.5" 
+                    required
+                  />
+                  <span className="text-sm text-gray-700">
+                    I understand the risks and side effects associated with the requested medication(s)
+                  </span>
+                </label>
+                
+                <label className="flex items-start space-x-3">
+                  <input 
+                    type="checkbox" 
+                    className="w-5 h-5 text-green-600 mt-0.5" 
+                    required
+                  />
+                  <span className="text-sm text-gray-700">
+                    I am able to follow the medication instructions and dosage requirements
+                  </span>
+                </label>
+                
+                <label className="flex items-start space-x-3">
+                  <input 
+                    type="checkbox" 
+                    className="w-5 h-5 text-green-600 mt-0.5" 
+                    required
+                  />
+                  <span className="text-sm text-gray-700">
+                    I have read and understood all warnings and contraindications
+                  </span>
+                </label>
+                
+                <label className="flex items-start space-x-3">
+                  <input 
+                    type="checkbox" 
+                    className="w-5 h-5 text-green-600 mt-0.5" 
+                    required
+                  />
+                  <span className="text-sm text-gray-700">
+                    I confirm I have no known allergies to the requested medication(s)
+                  </span>
+                </label>
+                
+                <label className="flex items-start space-x-3">
+                  <input 
+                    type="checkbox" 
+                    className="w-5 h-5 text-green-600 mt-0.5" 
+                    required
+                  />
+                  <span className="text-sm text-gray-700">
+                    I am 16 years of age or older (required for UK pharmacy services)
+                  </span>
+                </label>
+              </div>
+              
+              <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded">
+                <p className="text-xs text-blue-700">
+                  <strong>Note:</strong> Prescription Only Medicines (POM) require a valid prescription from a qualified healthcare professional. 
+                  Pharmacy Medicines (P) require pharmacist consultation and approval.
+                </p>
+              </div>
             </div>
             
             <button 
