@@ -6,13 +6,12 @@ import { usePathname } from 'next/navigation';
 import { 
   FaHome, 
   FaPrescriptionBottleAlt,
-  FaUsers,
-  FaChartLine,
   FaSignOutAlt,
   FaBars,
   FaTimes,
   FaExclamationCircle,
-  FaUser
+  FaUser,
+  FaPoundSign
 } from "react-icons/fa";
 
 // Define the navigation links with icons
@@ -20,9 +19,8 @@ const navItems = [
   { href: "/staff-dashboard", label: "Dashboard", icon: FaHome },
   { href: "/staff-dashboard/profile", label: "My Profile", icon: FaUser },
   { href: "/staff-dashboard/prescriptions", label: "Prescriptions", icon: FaPrescriptionBottleAlt },
+  { href: "/staff-dashboard/pricing", label: "Pricing Management", icon: FaPoundSign },
   { href: "/staff-dashboard/complaints", label: "Complaints", icon: FaExclamationCircle },
-  { href: "/staff-dashboard/customers", label: "Customers", icon: FaUsers },
-  { href: "/staff-dashboard/reports", label: "Reports", icon: FaChartLine },
 ];
 
 interface StaffSidebarProps {
@@ -45,14 +43,23 @@ export default function StaffSidebar({ children }: StaffSidebarProps) {
   return (
     <div className="flex h-screen bg-gray-100">
       {/* Mobile menu button */}
-      <div className="lg:hidden">
+      <div className="lg:hidden fixed top-4 left-4 z-50">
         <button
           onClick={() => setIsOpen(!isOpen)}
-          className="fixed top-4 left-4 z-50 p-2 bg-blue-600 text-white rounded-md"
+          className="p-2 bg-blue-600 text-white rounded-md shadow-lg transition-colors hover:bg-blue-700"
+          aria-label="Toggle navigation"
         >
-          {isOpen ? <FaTimes /> : <FaBars />}
+          {isOpen ? <FaTimes className="h-5 w-5" /> : <FaBars className="h-5 w-5" />}
         </button>
       </div>
+
+      {/* Mobile backdrop */}
+      {isOpen && (
+        <div
+          className="lg:hidden fixed inset-0 bg-black bg-opacity-50 z-30"
+          onClick={() => setIsOpen(false)}
+        />
+      )}
 
       {/* Sidebar */}
       <div className={`
@@ -62,12 +69,12 @@ export default function StaffSidebar({ children }: StaffSidebarProps) {
       `}>
         <div className="flex flex-col h-full">
           {/* Logo/Header */}
-          <div className="flex items-center justify-center h-16 bg-blue-600 text-white">
+          <div className="flex items-center justify-center h-16 bg-blue-600 text-white shadow-md">
             <h1 className="text-xl font-bold">Staff Portal</h1>
           </div>
 
           {/* Navigation */}
-          <nav className="flex-1 px-4 py-6 space-y-2">
+          <nav className="flex-1 px-4 py-6 space-y-2 overflow-y-auto">
             {navItems.map((item) => {
               const Icon = item.icon;
               const isActive = pathname === item.href;
@@ -77,29 +84,29 @@ export default function StaffSidebar({ children }: StaffSidebarProps) {
                   key={item.href}
                   href={item.href}
                   className={`
-                    flex items-center px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200
+                    flex items-center px-3 py-3 rounded-md text-sm font-medium transition-all duration-200
                     ${isActive 
-                      ? 'bg-blue-100 text-blue-700 border-r-2 border-blue-700' 
-                      : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900'
+                      ? 'bg-blue-100 text-blue-700 border-r-4 border-blue-700 shadow-sm' 
+                      : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900 hover:shadow-sm'
                     }
                   `}
                   onClick={() => setIsOpen(false)}
                 >
-                  <Icon className="mr-3 h-5 w-5" />
-                  {item.label}
+                  <Icon className={`mr-3 h-5 w-5 ${isActive ? 'text-blue-700' : 'text-gray-500'}`} />
+                  <span className="truncate">{item.label}</span>
                 </Link>
               );
             })}
           </nav>
 
-          {/* Logout */}
-          <div className="px-4 py-4 border-t border-gray-200">
+          {/* User info and logout */}
+          <div className="px-4 py-4 border-t border-gray-200 bg-gray-50">
             <button
               onClick={handleLogout}
-              className="flex items-center w-full px-3 py-2 text-sm font-medium text-gray-700 rounded-md hover:bg-gray-100 hover:text-gray-900 transition-colors duration-200"
+              className="flex items-center w-full px-3 py-3 text-sm font-medium text-gray-700 rounded-md hover:bg-gray-100 hover:text-gray-900 transition-all duration-200"
             >
-              <FaSignOutAlt className="mr-3 h-5 w-5" />
-              Logout
+              <FaSignOutAlt className="mr-3 h-5 w-5 text-gray-500" />
+              <span>Logout</span>
             </button>
           </div>
         </div>
@@ -107,17 +114,14 @@ export default function StaffSidebar({ children }: StaffSidebarProps) {
 
       {/* Main content */}
       <div className="flex-1 flex flex-col overflow-hidden lg:ml-0">
-        {/* Mobile overlay */}
-        {isOpen && (
-          <div 
-            className="fixed inset-0 z-30 bg-black bg-opacity-50 lg:hidden"
-            onClick={() => setIsOpen(false)}
-          />
-        )}
+        {/* Top padding for mobile menu button */}
+        <div className="lg:hidden h-16"></div>
         
         {/* Content area */}
-        <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-100 px-4 py-6 lg:px-8">
-          {children}
+        <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-100">
+          <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-6 max-w-7xl">
+            {children}
+          </div>
         </main>
       </div>
     </div>

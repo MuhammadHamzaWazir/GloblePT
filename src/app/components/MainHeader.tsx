@@ -4,7 +4,6 @@ import Link from "next/link";
 import Image from "next/image";
 import { useState } from "react";
 import { useAuth } from '../../lib/auth-context';
-import { BellIcon } from '@heroicons/react/24/outline';
 import { useRouter } from 'next/navigation';
 
 export default function MainHeader() {
@@ -42,9 +41,6 @@ export default function MainHeader() {
               <div className="absolute right-0 mt-2 w-48 bg-white rounded shadow-lg z-30 animate-fade-in text-green-800">
                 <Link href="/dashboard" className="block px-4 py-2 hover:bg-green-50" onClick={() => { setDropdown(false); setOpen(false); }}>Dashboard</Link>
                 <button onClick={handleLogout} className="block w-full text-left px-4 py-2 hover:bg-green-50">Logout</button>
-                <Link href="/dashboard/notifications" className="block px-4 py-2 hover:bg-green-50 flex items-center gap-2" onClick={() => { setDropdown(false); setOpen(false); }}>
-                  <BellIcon className="w-5 h-5 text-green-700" /> Notifications
-                </Link>
               </div>
             )}
           </div>

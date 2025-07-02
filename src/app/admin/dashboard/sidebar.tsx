@@ -8,7 +8,6 @@ import {
   FaUsers, 
   FaUserFriends, 
   FaExclamationCircle, 
-  FaAddressBook, 
   FaChartLine,
   FaPrescriptionBottleAlt,
   FaUser,
@@ -25,7 +24,6 @@ const navItems = [
   { href: "/admin/dashboard/identity-verification", label: "Identity Verification", icon: FaIdCard },
   { href: "/admin/dashboard/customers", label: "Customers", icon: FaUserFriends },
   { href: "/admin/dashboard/complaints", label: "Complaints", icon: FaExclamationCircle },
-  { href: "/admin/dashboard/contacts", label: "Contacts", icon: FaAddressBook },
   { href: "/admin/dashboard/sales", label: "Sales", icon: FaChartLine },
 ];
 
