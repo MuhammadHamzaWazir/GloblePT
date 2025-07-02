@@ -32,6 +32,7 @@ export const API_ENDPOINTS = {
 export const DASHBOARD_ROUTES = {
   ADMIN: '/admin/dashboard',
   STAFF: '/staff-dashboard',
+  SUPERVISOR: '/supervisor-dashboard',
   ASSISTANT: '/assistant-portal',
   CUSTOMER: '/dashboard'
 } as const
@@ -40,6 +41,7 @@ export const DASHBOARD_ROUTES = {
 export const USER_ROLES = {
   ADMIN: 'ADMIN',
   STAFF: 'STAFF',
+  SUPERVISOR: 'SUPERVISOR',
   ASSISTANT: 'ASSISTANT',
   CUSTOMER: 'CUSTOMER'
 } as const

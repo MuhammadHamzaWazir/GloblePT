@@ -20,6 +20,8 @@ export function getDashboardRoute(role: string): string {
       return DASHBOARD_ROUTES.ADMIN
     case USER_ROLES.STAFF:
       return DASHBOARD_ROUTES.STAFF
+    case USER_ROLES.SUPERVISOR:
+      return DASHBOARD_ROUTES.SUPERVISOR
     case USER_ROLES.ASSISTANT:
       return DASHBOARD_ROUTES.ASSISTANT
     case USER_ROLES.CUSTOMER:
