@@ -77,7 +77,8 @@ export default function SecuritySettings({ userEmail }: SecuritySettingsProps) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
           action: 'verify', 
-          token: verificationToken 
+          token: verificationToken,
+          secret: setupData?.secret // Include the secret for verification
         })
       });
 
@@ -200,8 +201,20 @@ export default function SecuritySettings({ userEmail }: SecuritySettingsProps) {
                 </div>
 
                 <div>
+                  <h6 className="font-medium text-gray-900 mb-2">QR Code:</h6>
+                  <p className="text-sm text-gray-600 mb-3">
+                    Scan this QR code with your authenticator app (Google Authenticator, Authy, etc.)
+                  </p>
+                  {setupData.qrCode && (
+                    <div className="flex justify-center mb-4">
+                      <img src={setupData.qrCode} alt="2FA QR Code" className="border border-gray-300 rounded" />
+                    </div>
+                  )}
+                </div>
+
+                <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Secret Key (enter this in your authenticator app):
+                    Or enter this secret key manually in your authenticator app:
                   </label>
                   <div className="bg-gray-100 p-3 rounded font-mono text-sm break-all">
                     {setupData.secret}

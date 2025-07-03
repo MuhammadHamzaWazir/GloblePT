@@ -49,11 +49,34 @@ export default function UserDashboard() {
     if (user) {
       fetchPrescriptions();
       checkIdentityStatus();
+      // Check for payment status in URL
+      checkPaymentStatus();
     } else {
       // Redirect to login if not authenticated
       router.push('/auth/login');
     }
   }, [user, router]);
+
+  // Check payment status from URL parameters
+  const checkPaymentStatus = () => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const paymentStatus = urlParams.get('payment');
+    const prescriptionId = urlParams.get('prescription');
+
+    if (paymentStatus === 'success' && prescriptionId) {
+      alert(`Payment successful! Prescription #${prescriptionId} has been paid.`);
+      // Refresh prescriptions to show updated status
+      setTimeout(() => {
+        fetchPrescriptions();
+      }, 1000);
+      // Clean up URL
+      window.history.replaceState({}, document.title, '/dashboard');
+    } else if (paymentStatus === 'cancelled') {
+      alert('Payment was cancelled. You can try again later.');
+      // Clean up URL
+      window.history.replaceState({}, document.title, '/dashboard');
+    }
+  };
 
   const fetchPrescriptions = async () => {
     try {
@@ -177,21 +200,16 @@ export default function UserDashboard() {
 
       const data = await response.json();
 
-      if (response.ok && data.success) {
-        // Update the prescription status locally
-        setPrescriptions(prescriptions.map(p => 
-          p.id === prescriptionId 
-            ? { ...p, paymentStatus: 'paid', status: 'paid' }
-            : p
-        ));
-        alert('Payment successful!');
+      if (response.ok && data.success && data.redirectUrl) {
+        // Redirect to Stripe Checkout
+        window.location.href = data.redirectUrl;
       } else {
-        alert(data.message || 'Payment failed');
+        alert(data.message || 'Payment initialization failed');
+        setPaymentLoading(null);
       }
     } catch (error) {
       console.error('Payment error:', error);
       alert('Payment failed. Please try again.');
-    } finally {
       setPaymentLoading(null);
     }
   };
@@ -530,9 +548,9 @@ export default function UserDashboard() {
                 <tbody>
                   {prescriptions.map(rx => (
                     <tr key={rx.id} className="hover:bg-gray-50">
-                      <td className="border border-green-200 px-4 py-3">{rx.medicine}</td>
-                      <td className="border border-green-200 px-4 py-3">{rx.quantity}</td>
-                      <td className="border border-green-200 px-4 py-3">£{rx.amount.toFixed(2)}</td>
+                      <td className="border border-green-200 px-4 py-3 text-gray-800">{rx.medicine}</td>
+                      <td className="border border-green-200 px-4 py-3 text-gray-800">{rx.quantity}</td>
+                      <td className="border border-green-200 px-4 py-3 text-gray-800">£{rx.amount.toFixed(2)}</td>
                       <td className="border border-green-200 px-4 py-3">
                         <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
                           rx.status === 'delivered' ? 'bg-green-100 text-green-800' :
@@ -553,7 +571,7 @@ export default function UserDashboard() {
                           {rx.paymentStatus.toUpperCase()}
                         </span>
                       </td>
-                      <td className="border border-green-200 px-4 py-3">{new Date(rx.createdAt).toLocaleDateString()}</td>
+                      <td className="border border-green-200 px-4 py-3 text-gray-800">{new Date(rx.createdAt).toLocaleDateString()}</td>
                       <td className="border border-green-200 px-4 py-3">
                         {rx.status === 'approved' && rx.paymentStatus === 'unpaid' && (
                           <>
