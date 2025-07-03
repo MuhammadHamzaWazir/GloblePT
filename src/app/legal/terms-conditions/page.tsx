@@ -2,88 +2,165 @@ export default function TermsConditionsPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-100 py-16 px-4">
       <div className="max-w-4xl mx-auto bg-white rounded-xl shadow-lg p-8">
-        <h1 className="text-4xl font-bold text-green-800 mb-8 text-center">Terms & Conditions</h1>
-        
+        <h1 className="text-4xl font-bold text-green-800 mb-8 text-center">Terms and Conditions</h1>
         <div className="space-y-8 text-gray-700">
           <section>
-            <h2 className="text-2xl font-semibold text-green-800 mb-4">Agreement to Terms</h2>
-            <p className="leading-relaxed">
-              By accessing and using the services of Global Pharma Trading, you agree to be bound by these 
-              Terms and Conditions. If you do not agree to these terms, please do not use our services.
-            </p>
+            <p className="mb-2">These Terms and Conditions govern the use of the online pharmacy services provided by <strong>[Your Pharmacy Name]</strong>, a UK-registered pharmacy operating under General Pharmaceutical Council (GPhC) regulations.</p>
+            <p className="mb-2">Effective Date: <strong>[Insert Date]</strong></p>
+            <p className="mb-2">Website Owner: <strong>[Pharmacy Name]</strong>, registered in England & Wales, GPhC registration number: <strong>[Insert Number]</strong></p>
+            <p className="mb-2">Website: <a href="https://www.[YourPharmacyDomain].co.uk" className="text-blue-600 hover:underline">www.[YourPharmacyDomain].co.uk</a></p>
+            <p className="mb-2">Contact Email: <strong>[Insert Email]</strong></p>
+            <p className="mb-2">Pharmacy Superintendent: <strong>[Insert Name]</strong>, GPhC Reg: <strong>[Insert Number]</strong></p>
           </section>
 
           <section>
-            <h2 className="text-2xl font-semibold text-green-800 mb-4">Pharmaceutical Services</h2>
-            <ul className="list-disc list-inside space-y-2 leading-relaxed">
-              <li>All prescriptions must be valid and issued by a qualified healthcare professional</li>
-              <li>We reserve the right to refuse to dispense any prescription if we have concerns about safety or legality</li>
-              <li>Controlled substances require additional verification and may have restrictions</li>
-              <li>Home delivery services are subject to availability and geographic limitations</li>
+            <h2 className="text-2xl font-semibold text-green-800 mb-4">1. About Us</h2>
+            <p>This website is owned and operated by [Pharmacy Name], a UK-registered and GPhC-regulated pharmacy. We provide online access to repeat prescription services, both NHS and private, in accordance with UK pharmacy laws. We do not sell medicines directly online.</p>
+          </section>
+
+          <section>
+            <h2 className="text-2xl font-semibold text-green-800 mb-4">2. Our Services</h2>
+            <p>We enable patients to request repeat prescriptions via our online form. We may arrange delivery or collection of dispensed medication. We may take payment online for private prescriptions or services that are not covered by the NHS. We do not offer an online store or sell over-the-counter products through this website.</p>
+          </section>
+
+          <section>
+            <h2 className="text-2xl font-semibold text-green-800 mb-4">3. Regulatory Compliance</h2>
+            <ul className="list-disc list-inside space-y-2">
+              <li>We are a licensed UK pharmacy regulated by the General Pharmaceutical Council (GPhC) and comply with all applicable UK laws including:</li>
+              <li>The Human Medicines Regulations 2012</li>
+              <li>The Medicines Act 1968</li>
+              <li>The Data Protection Act 2018 (UK GDPR)</li>
+              <li>The Distance Selling Pharmacy Standards</li>
             </ul>
           </section>
 
           <section>
-            <h2 className="text-2xl font-semibold text-green-800 mb-4">Professional Responsibility</h2>
-            <p className="leading-relaxed">
-              Our pharmacy is regulated by the General Pharmaceutical Council (GPhC). Our Superintendent 
-              Pharmacist, <a href="https://www.pharmacyregulation.org/registers/pharmacist/2073649" 
-              target="_blank" className="text-blue-600 hover:underline font-semibold">Frederick Osei Akomeah</a> (Registration: 2073649), ensures all services meet 
-              professional standards and regulatory requirements.
-            </p>
-          </section>
-
-          <section>
-            <h2 className="text-2xl font-semibold text-green-800 mb-4">Patient Responsibilities</h2>
-            <ul className="list-disc list-inside space-y-2 leading-relaxed">
-              <li>Provide accurate and complete information about your medical history</li>
-              <li>Inform us of any allergies or adverse reactions to medications</li>
-              <li>Follow prescribed dosage instructions and safety guidelines</li>
-              <li>Store medications safely and dispose of unused medications properly</li>
+            <h2 className="text-2xl font-semibold text-green-800 mb-4">4. Eligibility to Use Our Services</h2>
+            <ul className="list-disc list-inside space-y-2">
+              <li>Be over 18 years old;</li>
+              <li>Be resident in the UK;</li>
+              <li>Be registered with a UK GP practice;</li>
+              <li>Not misuse the site or provide false or misleading information.</li>
             </ul>
           </section>
 
           <section>
-            <h2 className="text-2xl font-semibold text-green-800 mb-4">Payment and Pricing</h2>
-            <p className="leading-relaxed">
-              Payment is required at the time of service unless prior arrangements have been made. 
-              NHS prescriptions are charged according to current NHS prescription charges. 
-              Private prescriptions are charged at competitive market rates.
-            </p>
+            <h2 className="text-2xl font-semibold text-green-800 mb-4">5. Prescription Requests</h2>
+            <ul className="list-disc list-inside space-y-2">
+              <li>All medicines are supplied following a valid prescription.</li>
+              <li>Our prescribers are registered healthcare professionals licensed to practice in the UK.</li>
+              <li>By submitting a repeat prescription request:
+                <ul className="list-disc ml-6">
+                  <li>You confirm the request is for yourself or someone you are legally authorised to represent.</li>
+                  <li>You give consent for us to contact your GP to confirm the prescription.</li>
+                  <li>We reserve the right to refuse to process requests that are clinically inappropriate or inconsistent with NHS guidelines.</li>
+                </ul>
+              </li>
+            </ul>
           </section>
 
           <section>
-            <h2 className="text-2xl font-semibold text-green-800 mb-4">Limitation of Liability</h2>
-            <p className="leading-relaxed">
-              While we take every care to ensure the accuracy and safety of our services, 
-              we cannot be held liable for any adverse reactions or complications arising from 
-              the use of medications dispensed, provided we have followed proper procedures.
-            </p>
+            <h2 className="text-2xl font-semibold text-green-800 mb-4">6. Ordering Process</h2>
+            <ul className="list-disc list-inside space-y-2">
+              <li>Orders are subject to clinical approval.</li>
+              <li>We reserve the right to decline or cancel orders for safety or legal reasons.</li>
+              <li>Prescription orders will be dispensed only after validation.</li>
+            </ul>
           </section>
 
           <section>
-            <h2 className="text-2xl font-semibold text-green-800 mb-4">Complaints Procedure</h2>
-            <p className="leading-relaxed">
-              If you have any concerns or complaints about our services, please contact us directly. 
-              We will investigate all complaints promptly and fairly. You may also contact the 
-              General Pharmaceutical Council if you are not satisfied with our response.
-            </p>
+            <h2 className="text-2xl font-semibold text-green-800 mb-4">7. Payments</h2>
+            <ul className="list-disc list-inside space-y-2">
+              <li>For private prescriptions or services:
+                <ul className="list-disc ml-6">
+                  <li>Payment must be made in full before the item is dispensed or service is provided.</li>
+                  <li>All prices are displayed in GBP (£).</li>
+                  <li>We use secure third-party payment providers (e.g. Stripe, PayPal).</li>
+                </ul>
+              </li>
+              <li>NHS prescriptions are free unless you are required to pay the standard NHS charge.</li>
+            </ul>
           </section>
 
           <section>
-            <h2 className="text-2xl font-semibold text-green-800 mb-4">Contact Information</h2>
+            <h2 className="text-2xl font-semibold text-green-800 mb-4">8. Delivery</h2>
+            <ul className="list-disc list-inside space-y-2">
+              <li>We offer delivery options for eligible patients. By requesting delivery, you agree that:</li>
+              <li>Medications are delivered to your UK address or nominated location.</li>
+              <li>We are not liable for delays caused by couriers or incorrect addresses.</li>
+            </ul>
+          </section>
+
+          <section>
+            <h2 className="text-2xl font-semibold text-green-800 mb-4">9. Cancellations & Refunds</h2>
+            <ul className="list-disc list-inside space-y-2">
+              <li>NHS prescriptions cannot be cancelled once submitted to your GP or once dispensed.</li>
+              <li>Private prescriptions may be refunded only if not yet dispensed.</li>
+              <li>Refunds (if eligible) will be made to the original payment method.</li>
+              <li>Faulty or damaged items should be reported within 3 days of receipt.</li>
+            </ul>
+          </section>
+
+          <section>
+            <h2 className="text-2xl font-semibold text-green-800 mb-4">10. Your Data and Privacy</h2>
+            <p>We are registered with the Information Commissioner’s Office (ICO) and comply with the UK GDPR and Data Protection Act 2018. For more information, see our Privacy Policy.</p>
+          </section>
+
+          <section>
+            <h2 className="text-2xl font-semibold text-green-800 mb-4">11. Medical Information</h2>
+            <p>Information on our website is not a substitute for professional medical advice. Always consult a healthcare professional before making decisions related to your medication.</p>
+          </section>
+
+          <section>
+            <h2 className="text-2xl font-semibold text-green-800 mb-4">12. Liability</h2>
+            <ul className="list-disc list-inside space-y-2">
+              <li>To the fullest extent permitted by law:
+                <ul className="list-disc ml-6">
+                  <li>We are not liable for any loss or damage arising from use of this website or any delays in prescription processing outside our control.</li>
+                  <li>Nothing in these terms limits our liability for death or personal injury caused by negligence or fraud.</li>
+                  <li>Medicines must be used as directed by our healthcare professionals.</li>
+                  <li>Use of our services does not replace regular contact with your GP or healthcare provider.</li>
+                </ul>
+              </li>
+            </ul>
+          </section>
+
+          <section>
+            <h2 className="text-2xl font-semibold text-green-800 mb-4">13. Prohibited Use</h2>
+            <ul className="list-disc list-inside space-y-2">
+              <li>You may not use our service to:</li>
+              <li>Obtain medicines for resale or misuse.</li>
+              <li>Provide false or misleading medical information.</li>
+              <li>Attempt to bypass consultation requirements.</li>
+            </ul>
+          </section>
+
+          <section>
+            <h2 className="text-2xl font-semibold text-green-800 mb-4">14. Changes to Terms</h2>
+            <p>We may update these terms from time to time. The latest version will always be posted on our website. Continued use of the website after changes means you accept the new terms.</p>
+          </section>
+
+          <section>
+            <h2 className="text-2xl font-semibold text-green-800 mb-4">15. Complaints and Disputes</h2>
+            <ul className="list-disc list-inside space-y-2">
+              <li>Complaints should be directed to [insert complaints contact].</li>
+              <li>Unresolved disputes may be escalated to the GPhC or NHS England.</li>
+            </ul>
+          </section>
+
+          <section>
+            <h2 className="text-2xl font-semibold text-green-800 mb-4">16. Governing Law</h2>
+            <p>These Terms are governed by the laws of England and Wales. Any disputes shall be subject to the exclusive jurisdiction of the English courts.</p>
+          </section>
+
+          <section>
+            <h2 className="text-2xl font-semibold text-green-800 mb-4">Contact Us</h2>
             <div className="bg-green-50 p-6 rounded-lg">
-              <p><strong>Global Pharma Trading</strong></p>
-              <p>Director: Usamah Patel</p>
-              <p>Unit 42b Bowlers Croft, Basildon, Essex SS14 3ED</p>
-              <p>Phone: <a href="tel:07950938398" className="text-blue-600 hover:underline">07950 938398</a></p>
-              <p>Email: <a href="mailto:info@globalpharmatrading.co.uk" className="text-blue-600 hover:underline">info@globalpharmatrading.co.uk</a></p>
-              <p>Opening Hours: Monday - Friday, 9:00 AM - 5:00 PM</p>
+              <p>If you have any questions about these Terms, please contact us at:</p>
+              <p>📧 [Insert Email]</p>
+              <p>📞 [Insert Telephone]</p>
+              <p>🏥 [Pharmacy Address]</p>
             </div>
-          </section>
-
-          <section className="text-sm text-gray-600 border-t pt-6">
-            <p>These terms and conditions were last updated on July 1, 2025. We reserve the right to modify these terms at any time.</p>
           </section>
         </div>
       </div>
