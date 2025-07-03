@@ -153,9 +153,9 @@ export async function POST(req: NextRequest) {
         instructions: instructions || '',
         quantity: totalQuantity,
         prescriptionText: medicineDetails,
-        amount: estimatedAmount,
+        amount: 0, // No price until staff/admin sets it
         deliveryAddress,
-        status: needsPharmacistApproval ? 'pending' : 'approved',
+        status: 'unapproved', // Always start as unapproved
         paymentStatus: 'unpaid',
         // Store additional data in existing fields for now
         // In future schema, these would be proper fields:

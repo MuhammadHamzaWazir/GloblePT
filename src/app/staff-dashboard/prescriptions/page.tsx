@@ -101,23 +101,74 @@ export default function StaffPrescriptionsPage() {
     }
   }, [user, search, statusFilter]);
 
-  // Handle status change
-  const handleStatusChange = async (prescriptionId: number, newStatus: string) => {
+  // Handle adding price to approved prescriptions
+  const handleAddPrice = async () => {
+    if (!selectedPrescriptionForPrice || !newPrice) {
+      setError('Please enter a valid price');
+      return;
+    }
+
     try {
       setActionLoading(true);
-      const updateData: any = { status: newStatus };
+      const price = parseFloat(newPrice);
       
-      if (newStatus === 'dispatched' && trackingNumber) {
-        updateData.trackingNumber = trackingNumber;
+      if (isNaN(price) || price <= 0) {
+        setError('Please enter a valid positive number');
+        return;
       }
 
-      const response = await fetch(`/api/staff/prescriptions/${prescriptionId}`, {
-        method: 'PUT',
+      const response = await fetch('/api/staff/prescriptions', {
+        method: 'POST',
         headers: {
           'Content-Type': 'application/json'
         },
         credentials: 'include',
-        body: JSON.stringify(updateData)
+        body: JSON.stringify({ 
+          prescriptionId: selectedPrescriptionForPrice.id,
+          action: 'add_price',
+          amount: price
+        })
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        // Refresh the prescriptions list
+        fetchPrescriptions(pagination?.currentPage || 1);
+        setIsPriceModalOpen(false);
+        setSelectedPrescriptionForPrice(null);
+        setNewPrice('');
+        setError('');
+      } else {
+        setError(data.message || 'Failed to add price');
+      }
+    } catch (err) {
+      setError('Failed to add price');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  // Handle status change (dispatch, deliver)
+  const handleStatusChange = async (prescriptionId: number, action: string) => {
+    try {
+      setActionLoading(true);
+      const requestBody: any = { 
+        prescriptionId,
+        action
+      };
+      
+      if (action === 'dispatch' && trackingNumber) {
+        requestBody.trackingNumber = trackingNumber;
+      }
+
+      const response = await fetch('/api/staff/prescriptions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        credentials: 'include',
+        body: JSON.stringify(requestBody)
       });
 
       const data = await response.json();
@@ -138,60 +189,14 @@ export default function StaffPrescriptionsPage() {
     }
   };
 
-  // Handle price update
-  const handlePriceUpdate = async () => {
-    if (!selectedPrescriptionForPrice || !newPrice) {
-      setError('Please enter a valid price');
-      return;
-    }
-
-    try {
-      setActionLoading(true);
-      const price = parseFloat(newPrice);
-      
-      if (isNaN(price) || price <= 0) {
-        setError('Please enter a valid positive number');
-        return;
-      }
-
-      const response = await fetch(`/api/staff/prescriptions/${selectedPrescriptionForPrice.id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        credentials: 'include',
-        body: JSON.stringify({ amount: price })
-      });
-
-      const data = await response.json();
-
-      if (response.ok && data.success) {
-        // Refresh the prescriptions list
-        fetchPrescriptions(pagination?.currentPage || 1);
-        setIsPriceModalOpen(false);
-        setSelectedPrescriptionForPrice(null);
-        setNewPrice('');
-        setError('');
-      } else {
-        setError(data.message || 'Failed to update price');
-      }
-    } catch (err) {
-      setError('Failed to update price');
-    } finally {
-      setActionLoading(false);
-    }
-  };
-
   const getStatusBadgeColor = (status: string) => {
     switch (status) {
-      case 'pending': return 'bg-yellow-100 text-yellow-800';
-      case 'approved': return 'bg-green-100 text-green-800';
+      case 'unapproved': return 'bg-gray-100 text-gray-800';
+      case 'approved': return 'bg-yellow-100 text-yellow-800';
       case 'rejected': return 'bg-red-100 text-red-800';
-      case 'payment_pending': return 'bg-blue-100 text-blue-800';
-      case 'paid': return 'bg-purple-100 text-purple-800';
-      case 'ready_to_ship': return 'bg-indigo-100 text-indigo-800';
-      case 'dispatched': return 'bg-gray-100 text-gray-800';
-      case 'delivered': return 'bg-green-100 text-green-800';
+      case 'ready_to_ship': return 'bg-green-100 text-green-800';
+      case 'dispatched': return 'bg-blue-100 text-blue-800';
+      case 'delivered': return 'bg-purple-100 text-purple-800';
       default: return 'bg-gray-100 text-gray-800';
     }
   };
@@ -458,7 +463,7 @@ export default function StaffPrescriptionsPage() {
                   <div className="space-y-3">
                     {(selectedPrescription.status === 'paid' || selectedPrescription.paymentStatus === 'paid') && (
                       <button
-                        onClick={() => handleStatusChange(selectedPrescription.id, 'ready_to_ship')}
+                        onClick={() => handleStatusChange(selectedPrescription.id, 'update_price')}
                         disabled={actionLoading}
                         className="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 disabled:opacity-50"
                       >
@@ -476,7 +481,7 @@ export default function StaffPrescriptionsPage() {
                           className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-black"
                         />
                         <button
-                          onClick={() => handleStatusChange(selectedPrescription.id, 'dispatched')}
+                          onClick={() => handleStatusChange(selectedPrescription.id, 'dispatch')}
                           disabled={actionLoading || !trackingNumber}
                           className="bg-gray-600 text-white px-4 py-2 rounded-md hover:bg-gray-700 disabled:opacity-50"
                         >
@@ -487,7 +492,7 @@ export default function StaffPrescriptionsPage() {
 
                     {selectedPrescription.status === 'dispatched' && (
                       <button
-                        onClick={() => handleStatusChange(selectedPrescription.id, 'delivered')}
+                        onClick={() => handleStatusChange(selectedPrescription.id, 'deliver')}
                         disabled={actionLoading}
                         className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 disabled:opacity-50"
                       >
@@ -569,7 +574,7 @@ export default function StaffPrescriptionsPage() {
                 Cancel
               </button>
               <button
-                onClick={handlePriceUpdate}
+                onClick={handleAddPrice}
                 disabled={actionLoading || !newPrice}
                 className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 disabled:opacity-50"
               >

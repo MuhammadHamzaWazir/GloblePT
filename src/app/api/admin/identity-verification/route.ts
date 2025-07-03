@@ -33,9 +33,14 @@ export async function GET() {
       where: {
         OR: [
           { file1Url: { not: null } },
-          { file2Url: { not: null } }
+          { file2Url: { not: null } },
+          { nationalInsuranceNumber: { not: null } },
+          { nhsNumber: { not: null } }
         ],
-        // In future schema: identityVerified: false
+        // Filter out users who are already verified (using file2Url as verification flag)
+        NOT: {
+          file2Url: { startsWith: 'verified:' }
+        }
       },
       select: {
         id: true,
@@ -108,27 +113,31 @@ export async function POST(req: Request) {
       return NextResponse.json({ message: "User not found" }, { status: 404 });
     }
 
-    // For now, we'll use a simple approach - store verification in file URLs or create a separate verification log
-    // In production with full schema, this would be:
-    /*
+    // Store verification status by updating user record
+    // We'll use file2Url field to store verification status temporarily
+    const verificationFlag = verified ? `verified:${Date.now()}:${verifier.id}` : `rejected:${Date.now()}:${verifier.id}`;
+    
     const updatedUser = await prisma.user.update({
       where: { id: parseInt(userId) },
       data: {
-        identityVerified: verified,
-        identityVerifiedAt: verified ? new Date() : null,
-        identityVerifiedBy: verified ? verifier.id : null,
-        ageVerified: ageVerified || false,
-        accountStatus: verified ? "verified" : "pending",
-        verificationNotes: notes,
+        // Store verification status in file2Url field (temporary solution)
+        file2Url: user.file2Url ? `${user.file2Url}|${verificationFlag}` : verificationFlag,
+        // Update address field to include verification notes if provided
+        address: notes ? `${user.address} [Admin Notes: ${notes}]` : user.address
       },
     });
-    */
 
     return NextResponse.json({
       message: verified ? "User identity verified successfully" : "User identity verification rejected",
       userId,
       verifiedBy: verifier.name,
       verifiedAt: new Date().toISOString(),
+      user: {
+        id: updatedUser.id,
+        name: updatedUser.name,
+        email: updatedUser.email,
+        verificationStatus: verified ? 'verified' : 'rejected'
+      }
     });
 
   } catch (error) {

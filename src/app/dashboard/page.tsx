@@ -15,6 +15,7 @@ interface Prescription {
   deliveryAddress: string;
   status: string;
   paymentStatus: string;
+  trackingNumber?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -39,11 +40,18 @@ export default function UserDashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [paymentLoading, setPaymentLoading] = useState<number | null>(null);
-  const [identityStatus, setIdentityStatus] = useState({
+  const [verificationStatus, setVerificationStatus] = useState({
+    status: 'pending', // 'pending', 'verified', 'rejected'
     hasPhotoId: false,
     hasAddressProof: false,
-    verificationComplete: false
+    hasNationalInsurance: false,
+    hasNHS: false,
+    verifiedBy: null,
+    verifiedAt: null,
+    notes: null,
+    documentSubmitted: false
   });
+  const [showVerificationAlert, setShowVerificationAlert] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -56,6 +64,33 @@ export default function UserDashboard() {
       router.push('/auth/login');
     }
   }, [user, router]);
+
+  // Refresh verification status when page becomes visible
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (!document.hidden && user) {
+        checkIdentityStatus();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [user]);
+
+  // Auto-refresh verification status every 30 seconds if status is pending
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    
+    if (user && verificationStatus.status === 'pending') {
+      interval = setInterval(() => {
+        checkIdentityStatus();
+      }, 30000); // 30 seconds
+    }
+
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [user, verificationStatus.status]);
 
   // Check payment status from URL parameters
   const checkPaymentStatus = () => {
@@ -99,17 +134,23 @@ export default function UserDashboard() {
 
   const checkIdentityStatus = async () => {
     try {
-      const response = await fetch('/api/users/profile');
+      const response = await fetch('/api/users/verification-status');
       if (response.ok) {
         const data = await response.json();
-        setIdentityStatus({
-          hasPhotoId: !!data.user.file1Url,
-          hasAddressProof: !!data.user.file2Url,
-          verificationComplete: !!(data.user.file1Url && data.user.file2Url)
-        });
+        const newStatus = data.verification;
+        
+        // Show alert if status changed to verified or rejected
+        if (verificationStatus.status === 'pending' && 
+            (newStatus.status === 'verified' || newStatus.status === 'rejected')) {
+          setShowVerificationAlert(true);
+          // Auto-hide alert after 10 seconds
+          setTimeout(() => setShowVerificationAlert(false), 10000);
+        }
+        
+        setVerificationStatus(newStatus);
       }
     } catch (error) {
-      console.error('Failed to check identity status:', error);
+      console.error('Failed to check verification status:', error);
     }
   };
 
@@ -264,8 +305,53 @@ export default function UserDashboard() {
       <div className="max-w-4xl mx-auto p-6">
         <h1 className="text-3xl font-bold text-green-800 mb-6">My Prescriptions Dashboard</h1>
         
+        {/* Verification Status Change Alert */}
+        {showVerificationAlert && (
+          <div className={`border px-6 py-4 rounded-lg mb-6 ${
+            verificationStatus.status === 'verified' 
+              ? 'bg-green-100 border-green-400 text-green-800' 
+              : 'bg-red-100 border-red-400 text-red-800'
+          }`}>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center">
+                <div className="flex-shrink-0">
+                  {verificationStatus.status === 'verified' ? (
+                    <svg className="w-5 h-5 text-green-500" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                    </svg>
+                  ) : (
+                    <svg className="w-5 h-5 text-red-500" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                    </svg>
+                  )}
+                </div>
+                <div className="ml-3">
+                  <h3 className="text-sm font-medium">
+                    {verificationStatus.status === 'verified' 
+                      ? '🎉 Identity Verification Approved!' 
+                      : '❌ Identity Verification Rejected'}
+                  </h3>
+                  <p className="text-sm mt-1">
+                    {verificationStatus.status === 'verified' 
+                      ? `Your identity has been verified by ${verificationStatus.verifiedBy}. You can now access all pharmacy services.`
+                      : `Your identity verification was rejected by ${verificationStatus.verifiedBy}. Please check the notes below and resubmit.`}
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowVerificationAlert(false)}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                </svg>
+              </button>
+            </div>
+          </div>
+        )}
+        
         {/* Identity Verification Alert */}
-        {!identityStatus.verificationComplete && (
+        {verificationStatus.status === 'pending' && !verificationStatus.documentSubmitted && (
           <div className="bg-yellow-100 border border-yellow-400 text-yellow-800 px-6 py-4 rounded-lg mb-6">
             <div className="flex items-start">
               <div className="flex-shrink-0">
@@ -278,16 +364,28 @@ export default function UserDashboard() {
                 <div className="mt-2 text-sm text-yellow-700">
                   <p>To comply with UK pharmacy regulations, please complete your identity verification:</p>
                   <ul className="mt-2 space-y-1">
-                    {!identityStatus.hasPhotoId && (
+                    {!verificationStatus.hasPhotoId && (
                       <li className="flex items-center">
                         <span className="w-2 h-2 bg-red-500 rounded-full mr-2"></span>
                         Upload a government-issued photo ID (passport, driving license)
                       </li>
                     )}
-                    {!identityStatus.hasAddressProof && (
+                    {!verificationStatus.hasAddressProof && (
                       <li className="flex items-center">
                         <span className="w-2 h-2 bg-red-500 rounded-full mr-2"></span>
                         Upload proof of address (utility bill, bank statement)
+                      </li>
+                    )}
+                    {!verificationStatus.hasNationalInsurance && (
+                      <li className="flex items-center">
+                        <span className="w-2 h-2 bg-red-500 rounded-full mr-2"></span>
+                        Provide your National Insurance number
+                      </li>
+                    )}
+                    {!verificationStatus.hasNHS && (
+                      <li className="flex items-center">
+                        <span className="w-2 h-2 bg-red-500 rounded-full mr-2"></span>
+                        Provide your NHS number
                       </li>
                     )}
                   </ul>
@@ -314,26 +412,93 @@ export default function UserDashboard() {
         {/* Identity Verification Status */}
         <div className="bg-white rounded-xl shadow-lg p-6 mb-8">
           <h2 className="text-xl font-semibold text-green-800 mb-4">Identity Verification Status</h2>
+          
+          {/* Overall Status Badge */}
+          <div className="mb-6">
+            <div className="flex items-center justify-between">
+              <span className="text-gray-700 font-medium">Overall Status:</span>
+              <div className="flex items-center space-x-2">
+                <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
+                  verificationStatus.status === 'verified' 
+                    ? 'bg-green-100 text-green-800' 
+                    : verificationStatus.status === 'rejected'
+                    ? 'bg-red-100 text-red-800'
+                    : 'bg-yellow-100 text-yellow-800'
+                }`}>
+                  {verificationStatus.status === 'verified' ? '✓ Verified' : 
+                   verificationStatus.status === 'rejected' ? '✗ Rejected' : '⏳ Pending Review'}
+                </span>
+              </div>
+            </div>
+            
+            {verificationStatus.verifiedBy && verificationStatus.verifiedAt && (
+              <div className="mt-2 text-sm text-gray-600">
+                {verificationStatus.status === 'verified' ? 'Verified' : 'Reviewed'} by {verificationStatus.verifiedBy} on{' '}
+                {new Date(verificationStatus.verifiedAt).toLocaleDateString('en-GB', {
+                  year: 'numeric',
+                  month: 'long',
+                  day: 'numeric',
+                  hour: '2-digit',
+                  minute: '2-digit'
+                })}
+              </div>
+            )}
+            
+            {verificationStatus.notes && (
+              <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                <p className="text-sm text-blue-800">
+                  <strong>Admin Notes:</strong> {verificationStatus.notes}
+                </p>
+              </div>
+            )}
+          </div>
+
+          {/* Document Status Details */}
           <div className="space-y-4">
             <div className="flex justify-between">
-              <span className="text-gray-700">Photo ID Verified:</span>
-              <span className={`font-semibold ${identityStatus.hasPhotoId ? 'text-green-600' : 'text-red-600'}`}>
-                {identityStatus.hasPhotoId ? 'Yes' : 'No'}
+              <span className="text-gray-700">Photo ID Submitted:</span>
+              <span className={`font-semibold ${verificationStatus.hasPhotoId ? 'text-green-600' : 'text-red-600'}`}>
+                {verificationStatus.hasPhotoId ? 'Yes' : 'No'}
               </span>
             </div>
             <div className="flex justify-between">
-              <span className="text-gray-700">Address Proof Verified:</span>
-              <span className={`font-semibold ${identityStatus.hasAddressProof ? 'text-green-600' : 'text-red-600'}`}>
-                {identityStatus.hasAddressProof ? 'Yes' : 'No'}
+              <span className="text-gray-700">Address Proof Submitted:</span>
+              <span className={`font-semibold ${verificationStatus.hasAddressProof ? 'text-green-600' : 'text-red-600'}`}>
+                {verificationStatus.hasAddressProof ? 'Yes' : 'No'}
               </span>
             </div>
             <div className="flex justify-between">
-              <span className="text-gray-700">Verification Complete:</span>
-              <span className={`font-semibold ${identityStatus.verificationComplete ? 'text-green-600' : 'text-red-600'}`}>
-                {identityStatus.verificationComplete ? 'Yes' : 'No'}
+              <span className="text-gray-700">National Insurance Number:</span>
+              <span className={`font-semibold ${verificationStatus.hasNationalInsurance ? 'text-green-600' : 'text-red-600'}`}>
+                {verificationStatus.hasNationalInsurance ? 'Provided' : 'Not Provided'}
+              </span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-gray-700">NHS Number:</span>
+              <span className={`font-semibold ${verificationStatus.hasNHS ? 'text-green-600' : 'text-red-600'}`}>
+                {verificationStatus.hasNHS ? 'Provided' : 'Not Provided'}
               </span>
             </div>
           </div>
+          
+          {/* Action Needed */}
+          {verificationStatus.status === 'pending' && !verificationStatus.documentSubmitted && (
+            <div className="mt-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+              <p className="text-sm text-yellow-800">
+                <strong>Action Required:</strong> Please complete your identity verification by visiting your{' '}
+                <a href="/profile" className="underline hover:text-yellow-900">profile page</a>.
+              </p>
+            </div>
+          )}
+          
+          {verificationStatus.status === 'rejected' && (
+            <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+              <p className="text-sm text-red-800">
+                <strong>Verification Rejected:</strong> Please check the admin notes above and resubmit your documents via your{' '}
+                <a href="/profile" className="underline hover:text-red-900">profile page</a>.
+              </p>
+            </div>
+          )}
         </div>
 
         {/* Submit New Prescription Form */}
@@ -555,11 +720,15 @@ export default function UserDashboard() {
                         <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
                           rx.status === 'delivered' ? 'bg-green-100 text-green-800' :
                           rx.status === 'dispatched' ? 'bg-blue-100 text-blue-800' :
+                          rx.status === 'ready_to_ship' ? 'bg-green-100 text-green-800' :
                           rx.status === 'approved' ? 'bg-yellow-100 text-yellow-800' :
-                          rx.status === 'pending' ? 'bg-gray-100 text-gray-800' :
-                          'bg-red-100 text-red-800'
+                          rx.status === 'unapproved' ? 'bg-gray-100 text-gray-800' :
+                          rx.status === 'rejected' ? 'bg-red-100 text-red-800' :
+                          'bg-gray-100 text-gray-800'
                         }`}>
-                          {rx.status.toUpperCase()}
+                          {rx.status === 'ready_to_ship' ? 'READY TO SHIP' :
+                           rx.status === 'unapproved' ? 'AWAITING APPROVAL' :
+                           rx.status.toUpperCase()}
                         </span>
                       </td>
                       <td className="border border-green-200 px-4 py-3">
@@ -573,14 +742,15 @@ export default function UserDashboard() {
                       </td>
                       <td className="border border-green-200 px-4 py-3 text-gray-800">{new Date(rx.createdAt).toLocaleDateString()}</td>
                       <td className="border border-green-200 px-4 py-3">
-                        {rx.status === 'approved' && rx.paymentStatus === 'unpaid' && (
+                        {/* Payment button only shows when status is 'ready_to_ship' and has price */}
+                        {rx.status === 'ready_to_ship' && rx.amount > 0 && rx.paymentStatus === 'unpaid' && (
                           <>
                             <button 
                               onClick={() => handlePayment(rx.id)} 
                               className="bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded-lg font-semibold text-sm shadow transition-all mr-2"
                               disabled={paymentLoading === rx.id}
                             >
-                              {paymentLoading === rx.id ? 'Processing...' : 'Pay Now'}
+                              {paymentLoading === rx.id ? 'Processing...' : `Pay £${rx.amount.toFixed(2)}`}
                             </button>
                             <button 
                               onClick={() => handleCancel(rx.id)} 
@@ -590,17 +760,30 @@ export default function UserDashboard() {
                             </button>
                           </>
                         )}
-                        {rx.status === 'paid' && (
+                        
+                        {/* Status messages */}
+                        {rx.status === 'unapproved' && (
+                          <span className="text-gray-600 text-sm">Awaiting supervisor approval</span>
+                        )}
+                        {rx.status === 'approved' && rx.amount === 0 && (
+                          <span className="text-yellow-600 text-sm">Approved - awaiting price from staff</span>
+                        )}
+                        {rx.status === 'rejected' && (
+                          <span className="text-red-600 text-sm">Rejected by supervisor</span>
+                        )}
+                        {rx.paymentStatus === 'paid' && (
                           <span className="text-green-600 font-semibold">Payment Complete</span>
                         )}
-                        {rx.status === 'pending' && (
-                          <span className="text-gray-600">Awaiting Approval</span>
+                        {rx.status === 'dispatched' && (
+                          <div className="text-blue-600 text-sm">
+                            <div>Dispatched</div>
+                            {rx.trackingNumber && (
+                              <div className="text-xs text-gray-600">Tracking: {rx.trackingNumber}</div>
+                            )}
+                          </div>
                         )}
-                        {rx.status === 'cancelled' && (
-                          <span className="text-red-600">Cancelled</span>
-                        )}
-                        {(rx.status === 'dispatched' || rx.status === 'delivered') && (
-                          <span className="text-blue-600">In Transit/Delivered</span>
+                        {rx.status === 'delivered' && (
+                          <span className="text-green-600 font-semibold">Delivered</span>
                         )}
                       </td>
                     </tr>

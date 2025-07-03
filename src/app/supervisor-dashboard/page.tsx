@@ -29,6 +29,9 @@ interface PendingPrescription {
   amount: number;
   createdAt: string;
   prescriptionText: string;
+  quantity: number;
+  deliveryAddress: string;
+  status: string;
 }
 
 interface Staff {
@@ -76,7 +79,7 @@ export default function SupervisorDashboard() {
       setIsLoading(true);
       
       // Fetch pending prescriptions for approval
-      const pendingResponse = await fetch('/api/admin/prescriptions?status=pending&limit=10', {
+      const pendingResponse = await fetch('/api/supervisor/prescriptions?limit=10', {
         credentials: 'include'
       });
 
@@ -133,47 +136,36 @@ export default function SupervisorDashboard() {
   };
 
   const handleApproveAndAssign = async () => {
-    if (!selectedPrescription || !selectedStaffId) {
-      setError('Please select a staff member');
+    if (!selectedPrescription) {
+      setError('No prescription selected');
       return;
     }
 
     try {
       setActionLoading(true);
-      const updateData: any = { 
-        status: 'approved',
-        staffId: parseInt(selectedStaffId)
-      };
-
-      // Include price if supervisor updated it
-      if (newPrice) {
-        const price = parseFloat(newPrice);
-        if (isNaN(price) || price <= 0) {
-          setError('Please enter a valid price');
-          return;
-        }
-        updateData.amount = price;
-      }
-
-      const response = await fetch(`/api/admin/prescriptions/${selectedPrescription.id}`, {
-        method: 'PUT',
+      
+      const response = await fetch('/api/supervisor/prescriptions', {
+        method: 'POST',
         headers: {
           'Content-Type': 'application/json'
         },
         credentials: 'include',
-        body: JSON.stringify(updateData)
+        body: JSON.stringify({
+          prescriptionId: selectedPrescription.id,
+          action: 'approve'
+        })
       });
 
       const data = await response.json();
 
       if (response.ok && data.success) {
-        // Refresh the data
-        fetchDashboardData();
+        // Remove approved prescription from the list
+        setPendingPrescriptions(prev => prev.filter(p => p.id !== selectedPrescription.id));
         setIsModalOpen(false);
         setSelectedPrescription(null);
-        setSelectedStaffId('');
-        setNewPrice('');
         setError('');
+        // Refresh stats
+        fetchDashboardData();
       } else {
         setError(data.message || 'Failed to approve prescription');
       }
@@ -187,28 +179,34 @@ export default function SupervisorDashboard() {
   const handleReject = async () => {
     if (!selectedPrescription) return;
 
+    const notes = prompt('Please provide a reason for rejection (optional):');
+    if (notes === null) return; // User cancelled
+
     try {
       setActionLoading(true);
-      const response = await fetch(`/api/admin/prescriptions/${selectedPrescription.id}`, {
-        method: 'PUT',
+      const response = await fetch('/api/supervisor/prescriptions', {
+        method: 'POST',
         headers: {
           'Content-Type': 'application/json'
         },
         credentials: 'include',
-        body: JSON.stringify({ 
-          status: 'rejected',
-          rejectedReason: 'Rejected by supervisor'
+        body: JSON.stringify({
+          prescriptionId: selectedPrescription.id,
+          action: 'reject',
+          notes: notes || 'Rejected by supervisor'
         })
       });
 
       const data = await response.json();
 
       if (response.ok && data.success) {
-        // Refresh the data
-        fetchDashboardData();
+        // Remove rejected prescription from the list
+        setPendingPrescriptions(prev => prev.filter(p => p.id !== selectedPrescription.id));
         setIsModalOpen(false);
         setSelectedPrescription(null);
         setError('');
+        // Refresh stats
+        fetchDashboardData();
       } else {
         setError(data.message || 'Failed to reject prescription');
       }
