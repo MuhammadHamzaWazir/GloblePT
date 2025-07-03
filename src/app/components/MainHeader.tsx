@@ -2,15 +2,46 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from '../../lib/auth-context';
 import { useRouter } from 'next/navigation';
+import { getDashboardRoute } from '../../lib/utils';
 
 export default function MainHeader() {
   const { user, logout } = useAuth();
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [dropdown, setDropdown] = useState(false);
+  const [userRole, setUserRole] = useState<string>('CUSTOMER');
+  const [dashboardUrl, setDashboardUrl] = useState('/dashboard');
+
+  // Get user role and set appropriate dashboard URL
+  useEffect(() => {
+    const fetchUserRole = async () => {
+      if (user) {
+        try {
+          const response = await fetch('/api/auth/verify', {
+            method: 'GET',
+            credentials: 'include'
+          });
+          
+          if (response.ok) {
+            const data = await response.json();
+            const role = data.user?.role || 'CUSTOMER';
+            setUserRole(role);
+            setDashboardUrl(getDashboardRoute(role));
+          }
+        } catch (error) {
+          console.error('Error fetching user role:', error);
+          // Fallback to customer dashboard
+          setDashboardUrl('/dashboard');
+        }
+      }
+    };
+
+    fetchUserRole();
+  }, [user]);
+
   const handleLogout = () => {
     logout();
     setDropdown(false);
@@ -39,7 +70,12 @@ export default function MainHeader() {
             </button>
             {dropdown && (
               <div className="absolute right-0 mt-2 w-48 bg-white rounded shadow-lg z-30 animate-fade-in text-green-800">
-                <Link href="/dashboard" className="block px-4 py-2 hover:bg-green-50" onClick={() => { setDropdown(false); setOpen(false); }}>Dashboard</Link>
+                <Link href={dashboardUrl} className="block px-4 py-2 hover:bg-green-50" onClick={() => { setDropdown(false); setOpen(false); }}>
+                  {userRole === 'ADMIN' ? 'Admin Dashboard' :
+                   userRole === 'STAFF' ? 'Staff Dashboard' :
+                   userRole === 'SUPERVISOR' ? 'Supervisor Dashboard' :
+                   userRole === 'ASSISTANT' ? 'Assistant Portal' : 'Dashboard'}
+                </Link>
                 <button onClick={handleLogout} className="block w-full text-left px-4 py-2 hover:bg-green-50">Logout</button>
               </div>
             )}

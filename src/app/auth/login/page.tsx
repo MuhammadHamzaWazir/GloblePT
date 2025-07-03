@@ -23,7 +23,7 @@ export default function LoginPage() {
     try {
       await login(email, password);
       
-      // Get user info from auth context or make an API call to get role
+      // Get user role from auth verification endpoint
       const response = await fetch('/api/auth/verify', {
         method: 'GET',
         credentials: 'include'
@@ -31,13 +31,18 @@ export default function LoginPage() {
       
       if (response.ok) {
         const data = await response.json();
-        const userRole = data.user?.role || 'customer';
-        const dashboardRoute = getDashboardRoute(userRole);
+        const userRole = data.user?.role;
         
-        console.log(`Redirecting ${userRole} to ${dashboardRoute}`);
-        router.push(dashboardRoute);
+        if (userRole) {
+          const dashboardRoute = getDashboardRoute(userRole);
+          console.log(`Redirecting ${userRole} to ${dashboardRoute}`);
+          router.push(dashboardRoute);
+        } else {
+          // Fallback to customer dashboard if role is not found
+          router.push('/dashboard');
+        }
       } else {
-        // Fallback to customer dashboard if we can't verify role
+        // Fallback to customer dashboard if verification fails
         router.push('/dashboard');
       }
     } catch (err: any) {

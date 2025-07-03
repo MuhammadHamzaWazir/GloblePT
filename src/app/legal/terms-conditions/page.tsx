@@ -5,17 +5,17 @@ export default function TermsConditionsPage() {
         <h1 className="text-4xl font-bold text-green-800 mb-8 text-center">Terms and Conditions</h1>
         <div className="space-y-8 text-gray-700">
           <section>
-            <p className="mb-2">These Terms and Conditions govern the use of the online pharmacy services provided by <strong>[Your Pharmacy Name]</strong>, a UK-registered pharmacy operating under General Pharmaceutical Council (GPhC) regulations.</p>
-            <p className="mb-2">Effective Date: <strong>[Insert Date]</strong></p>
-            <p className="mb-2">Website Owner: <strong>[Pharmacy Name]</strong>, registered in England & Wales, GPhC registration number: <strong>[Insert Number]</strong></p>
-            <p className="mb-2">Website: <a href="https://www.[YourPharmacyDomain].co.uk" className="text-blue-600 hover:underline">www.[YourPharmacyDomain].co.uk</a></p>
-            <p className="mb-2">Contact Email: <strong>[Insert Email]</strong></p>
-            <p className="mb-2">Pharmacy Superintendent: <strong>[Insert Name]</strong>, GPhC Reg: <strong>[Insert Number]</strong></p>
+            <p className="mb-2">These Terms and Conditions govern the use of the online pharmacy services provided by <strong>Global Pharma Trading</strong>, a UK-registered pharmacy operating under General Pharmaceutical Council (GPhC) regulations.</p>
+            <p className="mb-2">Effective Date: <strong>July 3, 2025</strong></p>
+            <p className="mb-2">Website Owner: <strong>Global Pharma Trading</strong>, registered in England & Wales, GPhC registration number: <strong>2073649</strong></p>
+            <p className="mb-2">Website: <a href="https://www.globalpharmatrading.co.uk" className="text-blue-600 hover:underline">www.globalpharmatrading.co.uk</a></p>
+            <p className="mb-2">Contact Email: <strong>info@globalpharmatrading.co.uk</strong></p>
+            <p className="mb-2">Pharmacy Superintendent: <strong>Frederick Osei Akomeah</strong>, GPhC Reg: <strong>2073649</strong></p>
           </section>
 
           <section>
             <h2 className="text-2xl font-semibold text-green-800 mb-4">1. About Us</h2>
-            <p>This website is owned and operated by [Pharmacy Name], a UK-registered and GPhC-regulated pharmacy. We provide online access to repeat prescription services, both NHS and private, in accordance with UK pharmacy laws. We do not sell medicines directly online.</p>
+            <p>This website is owned and operated by Global Pharma Trading, a UK-registered and GPhC-regulated pharmacy. We provide online access to repeat prescription services, both NHS and private, in accordance with UK pharmacy laws. We do not sell medicines directly online.</p>
           </section>
 
           <section>
@@ -143,7 +143,7 @@ export default function TermsConditionsPage() {
           <section>
             <h2 className="text-2xl font-semibold text-green-800 mb-4">15. Complaints and Disputes</h2>
             <ul className="list-disc list-inside space-y-2">
-              <li>Complaints should be directed to [insert complaints contact].</li>
+              <li>Complaints should be directed to info@globalpharmatrading.co.uk or 07950 938398.</li>
               <li>Unresolved disputes may be escalated to the GPhC or NHS England.</li>
             </ul>
           </section>
@@ -157,9 +157,10 @@ export default function TermsConditionsPage() {
             <h2 className="text-2xl font-semibold text-green-800 mb-4">Contact Us</h2>
             <div className="bg-green-50 p-6 rounded-lg">
               <p>If you have any questions about these Terms, please contact us at:</p>
-              <p>📧 [Insert Email]</p>
-              <p>📞 [Insert Telephone]</p>
-              <p>🏥 [Pharmacy Address]</p>
+              <p>📧 info@globalpharmatrading.co.uk</p>
+              <p>📞 07950 938398</p>
+              <p>🏥 Unit 42b Bowlers Croft, Basildon, Essex SS14 3ED</p>
+              <p>Owner: Usamah Patel</p>
             </div>
           </section>
         </div>

@@ -97,6 +97,16 @@ export async function POST(req: Request) {
       accountStatus: "pending"
     };
 
+    // Get customer role ID (default role for all new registrations)
+    const customerRole = await prisma.role.findFirst({
+      where: { 
+        OR: [
+          { name: { contains: 'customer' } },
+          { name: { contains: 'CUSTOMER' } }
+        ]
+      }
+    });
+
     // Create user with identity verification data (using existing schema fields)
     const user = await prisma.user.create({
       data: {
@@ -108,8 +118,11 @@ export async function POST(req: Request) {
         nhsNumber,
         file1Url: photoIdUrl, // Photo ID
         file2Url: addressProofUrl, // Address proof
-        roleId: 1, // Default customer role
+        roleId: customerRole?.id || 1, // Default customer role
       },
+      include: {
+        role: true
+      }
     });
 
     // Generate JWT token
@@ -117,7 +130,7 @@ export async function POST(req: Request) {
       id: user.id.toString(),
       email: user.email,
       name: user.name,
-      role: 'customer'
+      role: user.role?.name || 'CUSTOMER'
     });
 
     // Set cookie

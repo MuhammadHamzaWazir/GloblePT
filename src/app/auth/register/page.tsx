@@ -131,6 +131,8 @@ export default function RegisterPage() {
       
       // Auto-login after successful registration
       await login(email, password);
+      
+      // New users are always customers by default, redirect to customer dashboard
       router.push('/dashboard');
       
     } catch (error: any) {
