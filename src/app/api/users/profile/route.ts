@@ -24,6 +24,7 @@ export async function GET(request: NextRequest) {
       }, { status: 401 });
     }
 
+    // Find user with basic fields first
     const user = await prisma.user.findUnique({
       where: { id: parseInt(decoded.id) },
       select: {
@@ -46,9 +47,27 @@ export async function GET(request: NextRequest) {
       }, { status: 404 });
     }
 
+    // Try to get 2FA status, default to false if field doesn't exist
+    let twoFactorEnabled = false;
+    try {
+      const userWith2FA = await prisma.$queryRaw`
+        SELECT twoFactorEnabled FROM User WHERE id = ${parseInt(decoded.id)}
+      ` as any[];
+      
+      if (userWith2FA && userWith2FA[0] && userWith2FA[0].twoFactorEnabled !== undefined) {
+        twoFactorEnabled = Boolean(userWith2FA[0].twoFactorEnabled);
+      }
+    } catch (error) {
+      console.log("2FA field not available, defaulting to false");
+      twoFactorEnabled = false;
+    }
+
     return NextResponse.json({
       success: true,
-      data: user
+      data: {
+        ...user,
+        twoFactorEnabled
+      }
     });
 
   } catch (error) {
@@ -81,7 +100,7 @@ export async function PUT(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { name, address } = body;
+    const { name, address, twoFactorEnabled } = body;
 
     // Validate required fields
     if (!name || !address) {
@@ -99,12 +118,25 @@ export async function PUT(request: NextRequest) {
       }, { status: 400 });
     }
 
+    // Prepare update data
+    const updateData: any = {
+      name: name.trim(),
+      address: address.trim()
+    };
+
+    // Add 2FA setting if provided and field exists
+    if (twoFactorEnabled !== undefined) {
+      try {
+        // Try to update with 2FA field
+        updateData.twoFactorEnabled = Boolean(twoFactorEnabled);
+      } catch (error) {
+        console.log("2FA field not available, skipping 2FA update");
+      }
+    }
+
     const updatedUser = await prisma.user.update({
       where: { id: parseInt(decoded.id) },
-      data: {
-        name: name.trim(),
-        address: address.trim()
-      },
+      data: updateData,
       select: {
         id: true,
         name: true,
@@ -118,10 +150,27 @@ export async function PUT(request: NextRequest) {
       }
     });
 
+    // Try to get updated 2FA status
+    let finalTwoFactorEnabled = false;
+    try {
+      const userWith2FA = await prisma.$queryRaw`
+        SELECT twoFactorEnabled FROM User WHERE id = ${parseInt(decoded.id)}
+      ` as any[];
+      
+      if (userWith2FA && userWith2FA[0] && userWith2FA[0].twoFactorEnabled !== undefined) {
+        finalTwoFactorEnabled = Boolean(userWith2FA[0].twoFactorEnabled);
+      }
+    } catch (error) {
+      console.log("2FA field not available");
+    }
+
     return NextResponse.json({
       success: true,
       message: 'Profile updated successfully',
-      data: updatedUser
+      data: {
+        ...updatedUser,
+        twoFactorEnabled: finalTwoFactorEnabled
+      }
     });
 
   } catch (error) {

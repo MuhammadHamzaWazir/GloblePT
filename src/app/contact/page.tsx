@@ -1,12 +1,14 @@
 'use client';
 
-import { useState } from "react";
+import { useState, useRef } from "react";
+import ReCAPTCHA from 'react-google-recaptcha';
 
 export default function ContactPage() {
   const [submitted, setSubmitted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [emailPreviews, setEmailPreviews] = useState<any>(null);
+  const recaptchaRef = useRef<ReCAPTCHA>(null);
   
   const [formData, setFormData] = useState({
     name: '',
@@ -22,6 +24,13 @@ export default function ContactPage() {
       return;
     }
 
+    // Get reCAPTCHA token
+    const recaptchaToken = recaptchaRef.current?.getValue();
+    if (!recaptchaToken) {
+      setError('Please complete the reCAPTCHA verification');
+      return;
+    }
+
     try {
       setIsSubmitting(true);
       setError('');
@@ -31,7 +40,10 @@ export default function ContactPage() {
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify(formData)
+        body: JSON.stringify({
+          ...formData,
+          recaptchaToken
+        })
       });
 
       const data = await response.json();
@@ -40,17 +52,20 @@ export default function ContactPage() {
         setSubmitted(true);
         setEmailPreviews(data.data.emailStatus);
         
-        // Reset form
+        // Reset form and reCAPTCHA
         setFormData({
           name: '',
           email: '',
           message: ''
         });
+        recaptchaRef.current?.reset();
       } else {
         setError(data.message || 'Failed to send message');
+        recaptchaRef.current?.reset();
       }
     } catch (err) {
       setError('Failed to send message. Please try again.');
+      recaptchaRef.current?.reset();
     } finally {
       setIsSubmitting(false);
     }
@@ -190,6 +205,15 @@ export default function ContactPage() {
                   rows={6}
                   required
                   disabled={isSubmitting}
+                />
+              </div>
+
+              {/* Google reCAPTCHA */}
+              <div className="flex justify-center">
+                <ReCAPTCHA
+                  ref={recaptchaRef}
+                  sitekey={process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY || ''}
+                  theme="light"
                 />
               </div>
 

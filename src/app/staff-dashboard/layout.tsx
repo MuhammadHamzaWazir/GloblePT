@@ -13,6 +13,7 @@ import {
   FaUser,
   FaPoundSign
 } from "react-icons/fa";
+import AuthGuard from '@/components/AuthGuard';
 
 // Define the navigation links with icons
 const navItems = [
@@ -28,6 +29,14 @@ interface StaffSidebarProps {
 }
 
 export default function StaffSidebar({ children }: StaffSidebarProps) {
+  return (
+    <AuthGuard requireAuth={true}>
+      <StaffSidebarContent children={children} />
+    </AuthGuard>
+  );
+}
+
+function StaffSidebarContent({ children }: StaffSidebarProps) {
   const [isOpen, setIsOpen] = useState(false);
   const pathname = usePathname();
 

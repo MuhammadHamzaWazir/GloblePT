@@ -40,8 +40,8 @@ export async function POST(
       );
     }
 
-    // Check if prescription is approved and unpaid
-    if (prescription.status !== 'approved') {
+    // Check if prescription is approved/ready and unpaid
+    if (!['approved', 'ready_to_ship'].includes(prescription.status)) {
       return NextResponse.json(
         { success: false, message: 'Prescription must be approved before payment' },
         { status: 400 }

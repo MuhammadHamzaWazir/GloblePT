@@ -40,7 +40,7 @@ export default function LoginTestPage() {
     setResult('');
     
     try {
-      const response = await fetch('/api/auth/verify', {
+      const response = await fetch('/api/auth/me', {
         method: 'GET',
         credentials: 'include',
       });

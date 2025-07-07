@@ -132,70 +132,142 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = async () => {
     try {
-      console.log('Starting logout process...');
+      console.log('=== LOGOUT PROCESS STARTED ===');
+      const timestamp = new Date().toISOString();
+      console.log(`[${timestamp}] Starting comprehensive logout process...`);
       
       // Clear local state first to prevent any UI issues
       setUser(null);
+      console.log(`[${timestamp}] User state cleared`);
       
-      // Clear any client-side cookies aggressively
-      deleteCookie('pharmacy_auth');
+      // STEP 1: Aggressive client-side cookie deletion BEFORE API call
+      console.log(`[${timestamp}] Starting aggressive cookie deletion...`);
       
-      // Call logout API to clear the httpOnly cookie
-      const response = await fetch('/api/auth/logout', {
-        method: 'POST',
-        credentials: 'include'
-      });
-      
-      const data = await response.json();
-      console.log('Logout API response:', data);
-      
-      // Additional client-side cleanup
       if (typeof window !== 'undefined') {
+        // Get all cookies before deletion for debugging
+        const allCookiesBefore = document.cookie;
+        console.log(`[${timestamp}] All cookies before deletion:`, allCookiesBefore);
+        
+        // ENHANCED: Clear ALL cookies from the domain, not just pharmacy-related ones
+        const allCookies = document.cookie.split(';');
+        const cookieNames = allCookies.map(cookie => {
+          const eqPos = cookie.indexOf('=');
+          return eqPos > -1 ? cookie.substr(0, eqPos).trim() : cookie.trim();
+        }).filter(name => name.length > 0);
+        
+        console.log(`[${timestamp}] Found ${cookieNames.length} cookies to clear:`, cookieNames);
+        
+        // Clear each cookie with multiple deletion strategies
+        cookieNames.forEach(cookieName => {
+          // Use the enhanced deleteCookie function
+          deleteCookie(cookieName);
+          
+          // Additional brute force deletion for each cookie
+          const domain = window.location.hostname;
+          const deletionAttempts = [
+            `${cookieName}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/;`,
+            `${cookieName}=; max-age=0; path=/;`,
+            `${cookieName}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; domain=${domain};`,
+            `${cookieName}=; max-age=0; path=/; domain=${domain};`,
+            `${cookieName}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; domain=.${domain};`,
+            `${cookieName}=; max-age=0; path=/; domain=.${domain};`,
+            `${cookieName}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; secure;`,
+            `${cookieName}=; max-age=0; path=/; secure;`
+          ];
+          
+          deletionAttempts.forEach((cookieString, index) => {
+            try {
+              document.cookie = cookieString;
+            } catch (e) {
+              console.warn(`Failed deletion attempt ${index + 1} for ${cookieName}:`, e);
+            }
+          });
+          
+          console.log(`[${timestamp}] Applied ${deletionAttempts.length} deletion methods for: ${cookieName}`);
+        });
+        
         // Clear localStorage and sessionStorage
         try {
           localStorage.removeItem('pharmacy_auth');
           localStorage.removeItem('user');
+          localStorage.removeItem('token');
           sessionStorage.removeItem('pharmacy_auth');
           sessionStorage.removeItem('user');
+          sessionStorage.removeItem('token');
+          console.log(`[${timestamp}] Local/session storage cleared`);
         } catch (e) {
-          console.log('Storage cleanup failed:', e);
+          console.log(`[${timestamp}] Storage cleanup failed:`, e);
         }
         
-        // Force clear all cookies related to pharmacy
-        const cookies = document.cookie.split(';');
-        cookies.forEach(cookie => {
-          const eqPos = cookie.indexOf('=');
-          const name = eqPos > -1 ? cookie.substr(0, eqPos).trim() : cookie.trim();
-          if (name.includes('pharmacy') || name.includes('auth')) {
-            deleteCookie(name);
-          }
-        });
+        // Wait a moment and verify cookie deletion
+        setTimeout(() => {
+          const allCookiesAfter = document.cookie;
+          console.log(`[${timestamp}] All cookies after deletion:`, allCookiesAfter);
+          const pharmaCookieRemaining = allCookiesAfter.includes('pharmacy_auth');
+          console.log(`[${timestamp}] pharmacy_auth still present:`, pharmaCookieRemaining ? 'YES - FAILED' : 'NO - SUCCESS');
+        }, 50);
       }
       
-      // Add a small delay to ensure cookie is cleared
-      await new Promise(resolve => setTimeout(resolve, 200));
+      // STEP 2: Call logout API to clear the httpOnly cookie
+      console.log(`[${timestamp}] Calling logout API...`);
+      const response = await fetch('/api/auth/logout', {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'Cache-Control': 'no-cache'
+        }
+      });
       
-      // Force redirect to login page with logout parameter to bypass middleware redirect
-      console.log('Redirecting to login page...');
-      window.location.replace('/auth/login?logout=true');
+      if (response.ok) {
+        const data = await response.json();
+        console.log(`[${timestamp}] Logout API response:`, data);
+      } else {
+        console.warn(`[${timestamp}] Logout API failed with status:`, response.status);
+      }
+      
+      // STEP 3: Final cleanup and redirect
+      console.log(`[${timestamp}] Performing final cleanup...`);
+      
+      // Additional delay to ensure all operations complete
+      await new Promise(resolve => setTimeout(resolve, 300));
+      
+      // Force redirect to login page with logout parameter and cache busting
+      const redirectUrl = `/auth/login?logout=true&t=${Date.now()}`;
+      console.log(`[${timestamp}] Redirecting to:`, redirectUrl);
+      window.location.replace(redirectUrl);
       
     } catch (error) {
+      console.error('=== LOGOUT PROCESS FAILED ===');
       console.error('Logout process failed:', error);
-      // Even if API call fails, clear state and redirect
-      setUser(null);
-      deleteCookie('pharmacy_auth');
       
-      // Force cleanup even if API failed
+      // EMERGENCY CLEANUP - even if API call fails, clear everything
+      setUser(null);
+      
       if (typeof window !== 'undefined') {
+        // Nuclear option - clear everything
         try {
           localStorage.clear();
           sessionStorage.clear();
+          
+          // Brute force delete all cookies
+          const cookies = document.cookie.split(';');
+          cookies.forEach(cookie => {
+            const eqPos = cookie.indexOf('=');
+            const name = eqPos > -1 ? cookie.substr(0, eqPos).trim() : cookie.trim();
+            if (name) {
+              document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/;`;
+              document.cookie = `${name}=; max-age=0; path=/;`;
+            }
+          });
+          
+          console.log('Emergency cleanup completed');
         } catch (e) {
           console.log('Emergency storage clear failed:', e);
         }
       }
       
-      window.location.replace('/auth/login?logout=true');
+      // Force redirect even if everything fails
+      window.location.replace(`/auth/login?logout=emergency&t=${Date.now()}`);
     }
   };
 

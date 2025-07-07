@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../../lib/auth-context';
+import AuthGuard from '@/components/AuthGuard';
 
 interface SEOSetting {
   page: string;
@@ -11,6 +12,14 @@ interface SEOSetting {
 }
 
 export default function AssistantPortal() {
+  return (
+    <AuthGuard requireAuth={true}>
+      <AssistantPortalContent />
+    </AuthGuard>
+  );
+}
+
+function AssistantPortalContent() {
   const { user } = useAuth();
   if (!user || user.role !== 'assistant') {
     return <div className="p-8 text-red-600">Access denied. Assistants only.</div>;
@@ -22,6 +31,18 @@ export default function AssistantPortal() {
   const [description, setDescription] = useState('');
   const [canonical, setCanonical] = useState('');
   const [loading, setLoading] = useState(true);
+
+  const handleLogout = async () => {
+    try {
+      await fetch('/api/auth/logout', { method: 'POST' });
+      // Force immediate redirect to login page with logout parameter
+      window.location.replace('/auth/login?logout=true');
+    } catch (error) {
+      console.error('Logout failed:', error);
+      // Redirect anyway to clear any cached state
+      window.location.replace('/auth/login?logout=true');
+    }
+  };
 
   useEffect(() => {
     fetch('/api/seo').then(res => res.json()).then(setSeo).finally(() => setLoading(false));
@@ -49,7 +70,15 @@ export default function AssistantPortal() {
 
   return (
     <div className="p-4">
-      <h2 className="text-xl font-bold mb-4">SEO Management</h2>
+      <div className="flex justify-between items-center mb-6">
+        <h2 className="text-xl font-bold">SEO Management</h2>
+        <button
+          onClick={handleLogout}
+          className="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500"
+        >
+          Logout
+        </button>
+      </div>
       {/* Analytics Section */}
       <div className="mb-8">
         <h3 className="text-lg font-semibold mb-2">Website Analytics</h3>

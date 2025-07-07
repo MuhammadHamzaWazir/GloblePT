@@ -23,11 +23,31 @@ export default function Sidebar() {
 
   const handleLogout = async () => {
     try {
+      console.log('=== SIDEBAR LOGOUT CLICKED ===');
+      console.log('Current URL:', window.location.href);
+      console.log('Current cookies before logout:', document.cookie);
+      
+      // Show immediate feedback to user
+      const button = document.querySelector('button[data-logout]') as HTMLButtonElement;
+      if (button) {
+        button.disabled = true;
+        button.innerHTML = '<span>Logging out...</span>';
+      }
+      
       await logout();
     } catch (error) {
-      console.error('Logout failed:', error);
-      // Redirect anyway to clear any cached state
-      window.location.replace('/auth/login?logout=true');
+      console.error('Sidebar logout failed:', error);
+      
+      // Reset button state
+      const button = document.querySelector('button[data-logout]') as HTMLButtonElement;
+      if (button) {
+        button.disabled = false;
+        button.innerHTML = '<span>Logout</span>';
+      }
+      
+      // Force redirect anyway to clear any cached state
+      console.log('Force redirecting due to logout error...');
+      window.location.replace('/auth/login?logout=error&t=' + Date.now());
     }
   };
 
@@ -69,6 +89,7 @@ export default function Sidebar() {
       
       <button
         onClick={handleLogout}
+        data-logout="true"
         className="flex items-center gap-3 px-4 py-3 rounded-md text-green-100 hover:bg-green-700 transition-all duration-200 w-full text-left"
       >
         <FaSignOutAlt className="w-5 h-5 text-green-300" />

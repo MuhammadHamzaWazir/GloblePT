@@ -12,6 +12,7 @@ import {
   FaClock,
   FaTruck 
 } from 'react-icons/fa';
+import AuthGuard from '@/components/AuthGuard';
 
 interface DashboardStats {
   totalPrescriptions: number;
@@ -31,6 +32,14 @@ interface RecentPrescription {
 }
 
 export default function StaffDashboard() {
+  return (
+    <AuthGuard requireAuth={true}>
+      <StaffDashboardContent />
+    </AuthGuard>
+  );
+}
+
+function StaffDashboardContent() {
   const { user } = useAuth();
   const router = useRouter();
   const [stats, setStats] = useState<DashboardStats>({

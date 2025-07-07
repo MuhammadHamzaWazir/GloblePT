@@ -9,13 +9,19 @@ export async function GET() {
     const token = cookieStore.get("pharmacy_auth")?.value;
 
     if (!token) {
-      return NextResponse.json({ message: "No token provided" }, { status: 401 });
+      return NextResponse.json({ 
+        authenticated: false,
+        message: "No authentication token found" 
+      }, { status: 401 });
     }
 
     // Verify the JWT token
     const decoded = verifyToken(token);
     if (!decoded) {
-      return NextResponse.json({ message: "Invalid token" }, { status: 401 });
+      return NextResponse.json({ 
+        authenticated: false,
+        message: "Invalid authentication token" 
+      }, { status: 401 });
     }
 
     // Get fresh user data from database
@@ -25,10 +31,14 @@ export async function GET() {
     });
 
     if (!user) {
-      return NextResponse.json({ message: "User not found" }, { status: 404 });
+      return NextResponse.json({ 
+        authenticated: false,
+        message: "User not found" 
+      }, { status: 404 });
     }
 
     return NextResponse.json({
+      authenticated: true,
       user: {
         id: user.id,
         email: user.email,
@@ -39,6 +49,9 @@ export async function GET() {
 
   } catch (error) {
     console.error("Token verification error:", error);
-    return NextResponse.json({ message: "Token verification failed" }, { status: 401 });
+    return NextResponse.json({ 
+      authenticated: false,
+      message: "Token verification failed" 
+    }, { status: 401 });
   }
 }

@@ -13,6 +13,7 @@ import {
   FaTruck,
   FaUserCheck 
 } from 'react-icons/fa';
+import AuthGuard from '@/components/AuthGuard';
 
 interface DashboardStats {
   totalPrescriptions: number;
@@ -41,6 +42,14 @@ interface Staff {
 }
 
 export default function SupervisorDashboard() {
+  return (
+    <AuthGuard requireAuth={true}>
+      <SupervisorDashboardContent />
+    </AuthGuard>
+  );
+}
+
+function SupervisorDashboardContent() {
   const { user } = useAuth();
   const router = useRouter();
   const [stats, setStats] = useState<DashboardStats>({
@@ -103,13 +112,21 @@ export default function SupervisorDashboard() {
 
       if (staffResponse.ok) {
         const staffData = await staffResponse.json();
-        if (staffData.success) {
+        console.log('Staff API Response:', staffData); // Debug log
+        
+        if (staffData.success && staffData.data && staffData.data.staff) {
           setStaffList(staffData.data.staff);
           setStats(prev => ({
             ...prev,
             totalStaff: staffData.data.staff.length
           }));
+        } else {
+          console.error('Staff API response format error:', staffData);
+          setError('Failed to load staff members - invalid response format');
         }
+      } else {
+        console.error('Staff API request failed:', staffResponse.status, staffResponse.statusText);
+        setError('Failed to load staff members');
       }
 
       // Fetch overall prescription stats
@@ -423,21 +440,27 @@ export default function SupervisorDashboard() {
               Review Prescription Request
             </h3>
             
-            <div className="mb-6 space-y-3">
+            <div className="mb-6 space-y-3 text-gray-900">
               <div>
-                <strong>Customer:</strong> {selectedPrescription.user.name} ({selectedPrescription.user.email})
+                <strong className="text-gray-900">Customer:</strong> <span className="text-gray-700">{selectedPrescription.user.name} ({selectedPrescription.user.email})</span>
               </div>
               <div>
-                <strong>Medicine:</strong> {selectedPrescription.medicine}
+                <strong className="text-gray-900">Medicine:</strong> <span className="text-gray-700">{selectedPrescription.medicine}</span>
               </div>
               <div>
-                <strong>Prescription Details:</strong>
-                <div className="mt-2 p-3 bg-gray-50 rounded border text-sm">
+                <strong className="text-gray-900">Quantity:</strong> <span className="text-gray-700">{selectedPrescription.quantity}</span>
+              </div>
+              <div>
+                <strong className="text-gray-900">Delivery Address:</strong> <span className="text-gray-700">{selectedPrescription.deliveryAddress}</span>
+              </div>
+              <div>
+                <strong className="text-gray-900">Prescription Details:</strong>
+                <div className="mt-2 p-3 bg-gray-50 rounded border text-sm text-gray-800">
                   {selectedPrescription.prescriptionText}
                 </div>
               </div>
               <div>
-                <strong>Submitted:</strong> {new Date(selectedPrescription.createdAt).toLocaleString()}
+                <strong className="text-gray-900">Submitted:</strong> <span className="text-gray-700">{new Date(selectedPrescription.createdAt).toLocaleString()}</span>
               </div>
             </div>
 
@@ -451,7 +474,7 @@ export default function SupervisorDashboard() {
                 min="0"
                 value={newPrice}
                 onChange={(e) => setNewPrice(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-black"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 bg-white"
                 placeholder="Enter prescription price"
               />
             </div>
@@ -463,15 +486,18 @@ export default function SupervisorDashboard() {
               <select
                 value={selectedStaffId}
                 onChange={(e) => setSelectedStaffId(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-black"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 bg-white"
               >
-                <option value="">Select a staff member...</option>
+                <option value="" className="text-gray-500">Select a staff member...</option>
                 {staffList.map((staff) => (
-                  <option key={staff.id} value={staff.id}>
+                  <option key={staff.id} value={staff.id} className="text-gray-900">
                     {staff.name} - {staff.email}
                   </option>
                 ))}
               </select>
+              {staffList.length === 0 && (
+                <p className="text-sm text-red-600 mt-1">No staff members available. Please check staff configuration.</p>
+              )}
             </div>
 
             <div className="flex justify-end space-x-3">

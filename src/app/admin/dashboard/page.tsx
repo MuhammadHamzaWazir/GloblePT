@@ -14,10 +14,19 @@ import {
   PointElement,
   LineElement
 } from 'chart.js';
+import AuthGuard from '@/components/AuthGuard';
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend, ArcElement, PointElement, LineElement);
 
 export default function AdminDashboard() {
+  return (
+    <AuthGuard requireAuth={true}>
+      <AdminDashboardContent />
+    </AuthGuard>
+  );
+}
+
+function AdminDashboardContent() {
   const [userStats, setUserStats] = useState({ admin: 0, staff: 0, assistant: 0, customer: 0 });
   const [prescriptionStats, setPrescriptionStats] = useState({ pending: 0, processing: 0, delivered: 0 });
   const [paymentStats, setPaymentStats] = useState({ paid: 0, unpaid: 0 });

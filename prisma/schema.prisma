@@ -34,6 +34,12 @@ model User {
   twoFactorEnabled Boolean @default(false)
   twoFactorBackupCodes String? // JSON array of backup codes
   
+  // Email Verification for Login
+  emailVerificationCode String?
+  emailVerificationCodeExpiry DateTime?
+  emailVerificationAttempts Int @default(0)
+  lastEmailVerificationSent DateTime?
+  
   // Medical History & Capacity Assessment
   medicalProfile MedicalProfile?
   capacityAssessed Boolean @default(false)

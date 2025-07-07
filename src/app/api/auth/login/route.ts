@@ -1,9 +1,8 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
-import { cookies } from "next/headers";
-import { generateToken } from "@/lib/auth";
 import { loginSchema } from "@/lib/validations";
+import { generateToken } from "@/lib/auth";
 
 export async function POST(req: Request) {
   try {
@@ -24,12 +23,37 @@ export async function POST(req: Request) {
     const { email, password } = validationResult.data;
     console.log("Validated email:", email);
 
-    // Find user and include their role
+    // Find user and include their role (with error handling for missing fields)
     console.log("Attempting to log in user:", email);
-    const user = await prisma.user.findUnique({
-      where: { email },
-      include: { role: true },
-    });
+    let user;
+    try {
+      user = await prisma.user.findUnique({
+        where: { email },
+        include: { role: true },
+      });
+    } catch (dbError) {
+      console.log("Database schema not yet migrated, checking with basic fields only");
+      try {
+        user = await prisma.user.findUnique({
+          where: { email },
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            password: true,
+            roleId: true,
+            createdAt: true,
+            updatedAt: true,
+            role: true
+          }
+        });
+      } catch (secondError) {
+        console.error("Database connection failed:", secondError);
+        return NextResponse.json({ 
+          message: "Database temporarily unavailable." 
+        }, { status: 503 });
+      }
+    }
 
     if (!user) {
       console.log("User not found for email:", email);
@@ -47,36 +71,68 @@ export async function POST(req: Request) {
       return NextResponse.json({ message: "Invalid email or password." }, { status: 401 });
     }
 
-    // Generate JWT token
-    const token = generateToken({
-      id: user.id.toString(),
-      email: user.email,
-      name: user.name,
-      role: user.role?.name || 'USER'
-    });
+    console.log("Credentials verified successfully for:", user.email);
 
-    // Set secure cookie
-    const cookieStore = await cookies();
-    cookieStore.set("pharmacy_auth", token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: "lax",
-      path: "/",
-      maxAge: 7 * 24 * 60 * 60 // 7 days
-    });
+    // Check user's 2FA preference
+    let twoFactorEnabled = false;
+    try {
+      const userWith2FA = await prisma.$queryRaw`
+        SELECT twoFactorEnabled FROM User WHERE id = ${user.id}
+      ` as any[];
+      
+      if (userWith2FA && userWith2FA[0] && userWith2FA[0].twoFactorEnabled !== undefined) {
+        twoFactorEnabled = Boolean(userWith2FA[0].twoFactorEnabled);
+      }
+    } catch (error) {
+      console.log("2FA field not available, defaulting to false");
+      twoFactorEnabled = false;
+    }
 
-    console.log("User authenticated successfully:", user.email);
+    console.log("User 2FA enabled:", twoFactorEnabled);
 
-    return NextResponse.json({ 
-      message: "Login successful",
-      token: token,
-      user: {
-        id: user.id,
+    // If 2FA is enabled, return requiresVerification without setting auth cookie
+    if (twoFactorEnabled) {
+      return NextResponse.json({ 
+        message: "Please check your email for verification code.",
+        requiresVerification: true,
+        emailSent: false, // Will be handled by separate endpoint
+        user: {
+          id: user.id,
+          email: user.email,
+          name: user.name,
+          role: user.role?.name || 'USER'
+        }
+      }, { status: 200 });
+    } else {
+      // 2FA not enabled, proceed with direct login
+      const token = generateToken({
+        id: user.id.toString(),
         email: user.email,
         name: user.name,
         role: user.role?.name || 'USER'
-      }
-    }, { status: 200 });
+      });
+
+      const response = NextResponse.json({ 
+        message: "Login successful.",
+        success: true,
+        user: {
+          id: user.id,
+          email: user.email,
+          name: user.name,
+          role: user.role?.name || 'USER'
+        }
+      }, { status: 200 });
+
+      // Set authentication cookie
+      response.cookies.set("pharmacy_auth", token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "lax",
+        maxAge: 60 * 60 * 24 * 7, // 7 days
+      });
+
+      return response;
+    }
 
   } catch (error) {
     console.error("Login error:", error);

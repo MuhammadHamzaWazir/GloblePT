@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cookie Debug Test - Live Site</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background-color: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+            border-bottom: 2px solid #dc3545;
+            padding-bottom: 10px;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            background-color: #f8f9fa;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        button.danger {
+            background-color: #dc3545;
+        }
+        button.danger:hover {
+            background-color: #c82333;
+        }
+        #results {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-radius: 4px;
+            max-height: 400px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 12px;
+        }
+        .warning {
+            background-color: #fff3cd;
+            border: 1px solid #ffeaa7;
+            color: #856404;
+            padding: 15px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        .success {
+            background-color: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+            padding: 15px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        .error {
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚨 Live Site Cookie Debug Test</h1>
+        <h2>Global Pharma Trading - Cookie Clearing Diagnosis</h2>
+        
+        <div class="warning">
+            <strong>⚠️ IMPORTANT:</strong> This page should be used on the LIVE SITE: https://globalpharmatrading.co.uk/
+            <br>It will help diagnose why logout doesn't clear cookies properly.
+        </div>
+
+        <div class="test-section">
+            <h3>🔍 Current Cookie Status</h3>
+            <button onclick="checkCurrentCookies()">Check Current Cookies</button>
+            <button onclick="checkPharmacyCookie()">Check pharmacy_auth Cookie</button>
+            <div id="cookie-status"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>🧪 Cookie Clearing Tests</h3>
+            <button onclick="testClientSideClearingOnly()">Test Client-Side Clearing Only</button>
+            <button onclick="testAPILogoutEndpoint()">Test API Logout Endpoint</button>
+            <button onclick="testDebugEndpoint()">Test Debug Endpoint</button>
+            <button onclick="testComprehensiveLogout()" class="danger">Test Full Logout Process</button>
+        </div>
+
+        <div class="test-section">
+            <h3>🔬 Advanced Diagnostics</h3>
+            <button onclick="showBrowserInfo()">Show Browser Info</button>
+            <button onclick="showNetworkInfo()">Show Network Info</button>
+            <button onclick="testCookieCreation()">Test Cookie Creation</button>
+            <button class="danger" onclick="nuclearCookieClear()">Nuclear Cookie Clear</button>
+        </div>
+
+        <div class="test-section">
+            <h3>🚀 Live User Test</h3>
+            <div class="warning">
+                <strong>For testing with mhamzawazir1996@gmail.com:</strong>
+                <ol>
+                    <li>Login with credentials on another tab: <a href="/auth/login" target="_blank">Login Page</a></li>
+                    <li>Complete 2FA verification</li>
+                    <li>Come back to this tab and check cookies</li>
+                    <li>Click "Test Full Logout Process" below</li>
+                    <li>Verify cookies are cleared</li>
+                </ol>
+            </div>
+            <button onclick="goToDashboard()">Go to Dashboard</button>
+            <button onclick="goToLogin()">Go to Login</button>
+        </div>
+
+        <div id="results"></div>
+    </div>
+
+    <script>
+        function log(message) {
+            const timestamp = new Date().toISOString();
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.innerHTML += `[${timestamp}] ${message}\n`;
+            resultsDiv.scrollTop = resultsDiv.scrollHeight;
+            console.log(`[${timestamp}] ${message}`);
+        }
+
+        function checkCurrentCookies() {
+            const statusDiv = document.getElementById('cookie-status');
+            const allCookies = document.cookie;
+            
+            log('=== CURRENT COOKIE STATUS ===');
+            log('All cookies: ' + (allCookies || 'No cookies found'));
+            
+            const cookieArray = allCookies.split(';').map(c => c.trim()).filter(c => c);
+            log('Cookie count: ' + cookieArray.length);
+            
+            cookieArray.forEach((cookie, index) => {
+                log(`Cookie ${index + 1}: ${cookie}`);
+            });
+            
+            statusDiv.innerHTML = `
+                <div class="success">
+                    <strong>Total Cookies:</strong> ${cookieArray.length}<br>
+                    <strong>Raw Cookie String:</strong> ${allCookies || 'Empty'}<br>
+                    <strong>Domain:</strong> ${window.location.hostname}<br>
+                    <strong>Protocol:</strong> ${window.location.protocol}
+                </div>
+            `;
+        }
+
+        function checkPharmacyCookie() {
+            const pharmaCookie = document.cookie.split(';').find(c => c.trim().startsWith('pharmacy_auth='));
+            
+            log('=== PHARMACY_AUTH COOKIE CHECK ===');
+            if (pharmaCookie) {
+                log('✅ pharmacy_auth cookie found: ' + pharmaCookie.trim());
+                log('Cookie value: ' + pharmaCookie.split('=')[1]);
+            } else {
+                log('❌ pharmacy_auth cookie NOT found');
+            }
+            
+            return !!pharmaCookie;
+        }
+
+        function testClientSideClearingOnly() {
+            log('=== TESTING CLIENT-SIDE COOKIE CLEARING ===');
+            
+            const hadPharmaCookie = checkPharmacyCookie();
+            
+            if (!hadPharmaCookie) {
+                log('No pharmacy_auth cookie to clear - creating test cookie first');
+                document.cookie = 'pharmacy_auth=test_value_' + Date.now() + '; path=/;';
+                log('Created test pharmacy_auth cookie');
+            }
+            
+            // Apply all possible deletion methods
+            const domain = window.location.hostname;
+            const deletionMethods = [
+                `pharmacy_auth=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/;`,
+                `pharmacy_auth=; max-age=0; path=/;`,
+                `pharmacy_auth=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; domain=${domain};`,
+                `pharmacy_auth=; max-age=0; path=/; domain=${domain};`,
+                `pharmacy_auth=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; domain=.${domain};`,
+                `pharmacy_auth=; max-age=0; path=/; domain=.${domain};`,
+                `pharmacy_auth=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; secure;`,
+                `pharmacy_auth=; max-age=0; path=/; secure;`
+            ];
+            
+            deletionMethods.forEach((method, index) => {
+                document.cookie = method;
+                log(`Applied deletion method ${index + 1}: ${method}`);
+            });
+            
+            setTimeout(() => {
+                const stillExists = checkPharmacyCookie();
+                log('Client-side clearing result: ' + (stillExists ? 'FAILED - Cookie still exists' : 'SUCCESS - Cookie deleted'));
+            }, 100);
+        }
+
+        async function testAPILogoutEndpoint() {
+            log('=== TESTING API LOGOUT ENDPOINT ===');
+            
+            try {
+                const response = await fetch('/api/auth/logout', {
+                    method: 'POST',
+                    credentials: 'include',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                log('Logout API status: ' + response.status);
+                
+                const data = await response.json();
+                log('Logout API response: ' + JSON.stringify(data, null, 2));
+                
+                // Check Set-Cookie headers
+                const setCookieHeader = response.headers.get('set-cookie');
+                if (setCookieHeader) {
+                    log('Set-Cookie header from logout: ' + setCookieHeader);
+                } else {
+                    log('❌ No Set-Cookie header in logout response');
+                }
+                
+                setTimeout(() => {
+                    const stillExists = checkPharmacyCookie();
+                    log('API logout result: ' + (stillExists ? 'FAILED - Cookie still exists' : 'SUCCESS - Cookie deleted'));
+                }, 100);
+                
+            } catch (error) {
+                log('❌ Logout API error: ' + error.message);
+            }
+        }
+
+        async function testDebugEndpoint() {
+            log('=== TESTING DEBUG ENDPOINT ===');
+            
+            try {
+                const response = await fetch('/api/debug', {
+                    method: 'POST',
+                    credentials: 'include',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ action: 'test-logout' })
+                });
+                
+                log('Debug API status: ' + response.status);
+                
+                const data = await response.json();
+                log('Debug API response: ' + JSON.stringify(data, null, 2));
+                
+                setTimeout(() => {
+                    const stillExists = checkPharmacyCookie();
+                    log('Debug endpoint result: ' + (stillExists ? 'FAILED - Cookie still exists' : 'SUCCESS - Cookie deleted'));
+                }, 100);
+                
+            } catch (error) {
+                log('❌ Debug API error: ' + error.message);
+            }
+        }
+
+        async function testComprehensiveLogout() {
+            log('=== TESTING COMPREHENSIVE LOGOUT PROCESS ===');
+            
+            const hadCookieBefore = checkPharmacyCookie();
+            log('Had pharmacy_auth cookie before logout: ' + hadCookieBefore);
+            
+            // First try client-side clearing
+            testClientSideClearingOnly();
+            
+            // Wait a moment
+            await new Promise(resolve => setTimeout(resolve, 200));
+            
+            // Then try API logout
+            await testAPILogoutEndpoint();
+            
+            // Wait a moment
+            await new Promise(resolve => setTimeout(resolve, 200));
+            
+            // Final check
+            const stillExists = checkPharmacyCookie();
+            log('=== COMPREHENSIVE LOGOUT RESULT ===');
+            log('Final result: ' + (stillExists ? 'FAILED - Cookie still exists after all methods' : 'SUCCESS - Cookie successfully deleted'));
+            
+            if (stillExists) {
+                log('❌ LOGOUT FAILED - Cookie persists despite all clearing attempts');
+                log('This indicates a potential issue with:');
+                log('  1. Cookie domain/path mismatch');
+                log('  2. Browser security settings');
+                log('  3. Server-side cookie setting configuration');
+                log('  4. Deployment/caching issues');
+            } else {
+                log('✅ LOGOUT SUCCESS - Cookie cleared successfully');
+            }
+        }
+
+        function showBrowserInfo() {
+            log('=== BROWSER INFORMATION ===');
+            log('User Agent: ' + navigator.userAgent);
+            log('Domain: ' + window.location.hostname);
+            log('Protocol: ' + window.location.protocol);
+            log('Port: ' + window.location.port);
+            log('Path: ' + window.location.pathname);
+            log('Cookies Enabled: ' + navigator.cookieEnabled);
+            log('Local Storage Available: ' + (typeof Storage !== 'undefined'));
+        }
+
+        function showNetworkInfo() {
+            log('=== NETWORK INFORMATION ===');
+            log('Current URL: ' + window.location.href);
+            log('Referrer: ' + document.referrer);
+            log('Title: ' + document.title);
+            
+            // Check if we can access fetch
+            log('Fetch API Available: ' + (typeof fetch !== 'undefined'));
+        }
+
+        function testCookieCreation() {
+            log('=== TESTING COOKIE CREATION ===');
+            
+            const testCookieName = 'test_cookie_' + Date.now();
+            const testCookieValue = 'test_value_' + Date.now();
+            
+            log('Creating test cookie: ' + testCookieName);
+            document.cookie = `${testCookieName}=${testCookieValue}; path=/;`;
+            
+            setTimeout(() => {
+                const created = document.cookie.includes(testCookieName);
+                log('Test cookie creation: ' + (created ? 'SUCCESS' : 'FAILED'));
+                
+                if (created) {
+                    // Try to delete it
+                    document.cookie = `${testCookieName}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/;`;
+                    
+                    setTimeout(() => {
+                        const deleted = !document.cookie.includes(testCookieName);
+                        log('Test cookie deletion: ' + (deleted ? 'SUCCESS' : 'FAILED'));
+                    }, 100);
+                }
+            }, 100);
+        }
+
+        function nuclearCookieClear() {
+            log('=== NUCLEAR COOKIE CLEAR ===');
+            log('⚠️ Clearing ALL cookies for this domain');
+            
+            const cookies = document.cookie.split(';');
+            cookies.forEach(cookie => {
+                const eqPos = cookie.indexOf('=');
+                const name = eqPos > -1 ? cookie.substr(0, eqPos).trim() : cookie.trim();
+                if (name) {
+                    const domain = window.location.hostname;
+                    
+                    // Multiple deletion attempts for each cookie
+                    document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/;`;
+                    document.cookie = `${name}=; max-age=0; path=/;`;
+                    document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; domain=${domain};`;
+                    document.cookie = `${name}=; max-age=0; path=/; domain=${domain};`;
+                    document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; domain=.${domain};`;
+                    document.cookie = `${name}=; max-age=0; path=/; domain=.${domain};`;
+                    
+                    log('Attempted to clear cookie: ' + name);
+                }
+            });
+            
+            // Clear storage too
+            try {
+                localStorage.clear();
+                sessionStorage.clear();
+                log('Cleared local and session storage');
+            } catch (e) {
+                log('Storage clear failed: ' + e.message);
+            }
+            
+            setTimeout(() => {
+                log('Cookies remaining after nuclear clear: ' + (document.cookie || 'None'));
+            }, 200);
+        }
+
+        function goToDashboard() {
+            window.open('/dashboard', '_blank');
+        }
+
+        function goToLogin() {
+            window.open('/auth/login', '_blank');
+        }
+
+        // Auto-run initial checks on page load
+        window.onload = function() {
+            setTimeout(() => {
+                log('=== PAGE LOADED ===');
+                showBrowserInfo();
+                checkCurrentCookies();
+            }, 500);
+        };
+    </script>
+</body>
+</html>

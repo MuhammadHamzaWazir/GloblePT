@@ -4,7 +4,7 @@ import { sendEmail, emailTemplates } from '../../../lib/email';
 
 export async function POST(req: NextRequest) {
   try {
-    const { name, email, message } = await req.json();
+    const { name, email, message, recaptchaToken } = await req.json();
     
     // Validate required fields
     if (!name || !email || !message) {
@@ -12,6 +12,43 @@ export async function POST(req: NextRequest) {
         success: false, 
         message: 'Name, email, and message are required' 
       }, { status: 400 });
+    }
+
+    // Validate reCAPTCHA
+    if (!recaptchaToken) {
+      return NextResponse.json({ 
+        success: false, 
+        message: 'Please complete the reCAPTCHA verification' 
+      }, { status: 400 });
+    }
+
+    // Verify reCAPTCHA with Google
+    const recaptchaSecret = process.env.RECAPTCHA_SECRET_KEY;
+    if (recaptchaSecret) {
+      try {
+        const recaptchaResponse = await fetch('https://www.google.com/recaptcha/api/siteverify', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+          },
+          body: `secret=${recaptchaSecret}&response=${recaptchaToken}`,
+        });
+
+        const recaptchaResult = await recaptchaResponse.json();
+        
+        if (!recaptchaResult.success) {
+          return NextResponse.json({ 
+            success: false, 
+            message: 'reCAPTCHA verification failed. Please try again.' 
+          }, { status: 400 });
+        }
+      } catch (recaptchaError) {
+        console.error('reCAPTCHA verification error:', recaptchaError);
+        return NextResponse.json({ 
+          success: false, 
+          message: 'reCAPTCHA verification failed. Please try again.' 
+        }, { status: 400 });
+      }
     }
 
     // Validate email format
@@ -34,9 +71,9 @@ export async function POST(req: NextRequest) {
 
     // Send email notifications
     try {
-      // 1. Send notification to admin
+      // 1. Send notification to Global Pharma Trading contact email
       const adminTemplate = emailTemplates.contactForm({ name, email, message });
-      const adminEmail = process.env.ADMIN_EMAIL || 'admin@globalpharmacy.com';
+      const adminEmail = 'contact@globalpharmatrading.co.uk';
       
       const adminEmailResult = await sendEmail({
         to: adminEmail,

@@ -1,7 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  output: 'export',
+  // Remove output: 'export' for API routes to work
   trailingSlash: true,
   images: {
     unoptimized: true,
@@ -12,7 +12,8 @@ const nextConfig: NextConfig = {
   typescript: {
     ignoreBuildErrors: true,
   },
-  assetPrefix: process.env.NODE_ENV === 'production' ? 'https://yourdomain.com' : '',
+  // Remove assetPrefix for production deployment
+  serverExternalPackages: ['bcryptjs'],
 };
 
 export default nextConfig;

@@ -1,20 +1,26 @@
 import nodemailer from 'nodemailer';
 
-// Email configuration
+// Email configuration with improved SMTP support
 const emailConfig = {
-  // For development/testing - using Ethereal Email (fake SMTP)
   host: process.env.SMTP_HOST || 'smtp.ethereal.email',
   port: parseInt(process.env.SMTP_PORT || '587'),
-  secure: false, // true for 465, false for other ports
+  secure: process.env.SMTP_SECURE === 'true' || parseInt(process.env.SMTP_PORT || '587') === 465,
   auth: {
     user: process.env.SMTP_USER || 'ethereal.user@ethereal.email',
     pass: process.env.SMTP_PASS || 'ethereal.pass'
+  },
+  // Additional options for better compatibility
+  tls: {
+    ciphers: 'SSLv3',
+    rejectUnauthorized: false
   }
 };
 
-// For production, you would use a service like:
-// - Gmail: smtp.gmail.com:587
+// Supported SMTP providers configuration
+// - Mailtrap: live.smtp.mailtrap.io:587 (recommended)
 // - SendGrid: smtp.sendgrid.net:587
+// - Gmail: smtp.gmail.com:587
+// - GoDaddy: smtpout.secureserver.net:587
 // - Amazon SES: email-smtp.region.amazonaws.com:587
 // - Outlook: smtp-mail.outlook.com:587
 
@@ -54,42 +60,63 @@ const createTransporter = async () => {
 // Email templates
 export const emailTemplates = {
   contactForm: (data: { name: string; email: string; message: string }) => ({
-    subject: `New Contact Form Submission from ${data.name}`,
+    subject: `New Contact Form Submission from ${data.name} - Global Pharma Trading`,
     html: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <h2 style="color: #2563eb; border-bottom: 2px solid #2563eb; padding-bottom: 10px;">
-          New Contact Form Submission
-        </h2>
-        
-        <div style="background-color: #f8fafc; padding: 20px; border-radius: 8px; margin: 20px 0;">
-          <h3 style="margin-top: 0; color: #374151;">Contact Details</h3>
-          <p><strong>Name:</strong> ${data.name}</p>
-          <p><strong>Email:</strong> ${data.email}</p>
-          <p><strong>Submitted:</strong> ${new Date().toLocaleString()}</p>
+        <div style="background-color: #16a34a; color: white; padding: 20px; text-align: center;">
+          <h1 style="margin: 0; font-size: 24px;">Global Pharma Trading</h1>
+          <p style="margin: 5px 0 0 0; opacity: 0.9;">New Contact Form Submission</p>
         </div>
         
-        <div style="background-color: #ffffff; padding: 20px; border: 1px solid #e5e7eb; border-radius: 8px;">
+        <div style="background-color: #f8fafc; padding: 20px; border-radius: 0 0 8px 8px;">
+          <h3 style="margin-top: 0; color: #374151;">Contact Details</h3>
+          <p><strong>Name:</strong> ${data.name}</p>
+          <p><strong>Email:</strong> <a href="mailto:${data.email}">${data.email}</a></p>
+          <p><strong>Submitted:</strong> ${new Date().toLocaleString('en-GB', { 
+            timeZone: 'Europe/London',
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+          })}</p>
+        </div>
+        
+        <div style="background-color: #ffffff; padding: 20px; border: 1px solid #e5e7eb; margin-top: 10px; border-radius: 8px;">
           <h3 style="margin-top: 0; color: #374151;">Message</h3>
-          <p style="line-height: 1.6; color: #6b7280;">${data.message.replace(/\n/g, '<br>')}</p>
+          <p style="line-height: 1.6; color: #6b7280; white-space: pre-wrap;">${data.message}</p>
+        </div>
+        
+        <div style="margin-top: 20px; padding: 15px; background-color: #dcfce7; border-left: 4px solid #16a34a; border-radius: 4px;">
+          <p style="margin: 0; color: #166534;"><strong>Action Required:</strong> Please respond to this inquiry at your earliest convenience.</p>
         </div>
         
         <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid #e5e7eb; text-align: center; color: #9ca3af; font-size: 12px;">
-          <p>This email was sent from the Pharmacy Contact Form</p>
-          <p>Please reply directly to: ${data.email}</p>
+          <p>This email was sent from the Global Pharma Trading contact form</p>
+          <p><strong>Unit 42b Bowlers Croft, Basildon, Essex, SS14 3ED</strong></p>
+          <p>Phone: <a href="tel:07950938398">07950 938398</a> | Email: <a href="mailto:contact@globalpharmatrading.co.uk">contact@globalpharmatrading.co.uk</a></p>
         </div>
       </div>
     `,
     text: `
-      New Contact Form Submission
+      GLOBAL PHARMA TRADING - New Contact Form Submission
       
+      Contact Details:
       Name: ${data.name}
       Email: ${data.email}
-      Submitted: ${new Date().toLocaleString()}
+      Submitted: ${new Date().toLocaleString('en-GB', { timeZone: 'Europe/London' })}
       
       Message:
       ${data.message}
       
-      Please reply directly to: ${data.email}
+      Please respond to this inquiry at your earliest convenience.
+      Reply directly to: ${data.email}
+      
+      ---
+      Global Pharma Trading
+      Unit 42b Bowlers Croft, Basildon, Essex, SS14 3ED
+      Phone: 07950 938398
+      Email: contact@globalpharmatrading.co.uk
     `
   }),
 

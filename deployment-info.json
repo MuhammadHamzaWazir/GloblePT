@@ -1,0 +1,15 @@
+{
+  "deploymentDate": "2025-07-07T20:26:40.633Z",
+  "version": "1.0.0-logout-fix",
+  "changes": [
+    "Fixed logout cookie clearing issues",
+    "Updated logout API to match login cookie properties exactly",
+    "Improved cookie deletion headers",
+    "Enhanced cross-browser compatibility"
+  ],
+  "apiRoutes": [
+    "/api/auth/login",
+    "/api/auth/logout",
+    "/api/auth/me"
+  ]
+}

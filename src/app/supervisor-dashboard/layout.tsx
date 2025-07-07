@@ -11,9 +11,9 @@ import {
   FaTimes,
   FaExclamationCircle,
   FaUser,
-  FaUserTie,
   FaCheckCircle
 } from "react-icons/fa";
+import AuthGuard from '@/components/AuthGuard';
 
 // Define the navigation links with icons
 const navItems = [
@@ -22,7 +22,6 @@ const navItems = [
   { href: "/supervisor-dashboard/prescriptions", label: "Prescriptions", icon: FaPrescriptionBottleAlt },
   { href: "/supervisor-dashboard/approvals", label: "Prescription Approvals", icon: FaCheckCircle },
   { href: "/supervisor-dashboard/complaints", label: "Complaints", icon: FaExclamationCircle },
-  { href: "/supervisor-dashboard/staff", label: "Staff Management", icon: FaUserTie },
 ];
 
 interface SupervisorSidebarProps {
@@ -30,6 +29,14 @@ interface SupervisorSidebarProps {
 }
 
 export default function SupervisorSidebar({ children }: SupervisorSidebarProps) {
+  return (
+    <AuthGuard requireAuth={true}>
+      <SupervisorSidebarContent children={children} />
+    </AuthGuard>
+  );
+}
+
+function SupervisorSidebarContent({ children }: SupervisorSidebarProps) {
   const [isOpen, setIsOpen] = useState(false);
   const pathname = usePathname();
 

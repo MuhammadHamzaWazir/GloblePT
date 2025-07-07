@@ -1,7 +1,18 @@
+'use client';
+
 import React from 'react';
 import { useAuth } from '../../lib/auth-context';
+import AuthGuard from '@/components/AuthGuard';
 
 export default function AdminPanel() {
+  return (
+    <AuthGuard requireAuth={true}>
+      <AdminPanelContent />
+    </AuthGuard>
+  );
+}
+
+function AdminPanelContent() {
   const { user } = useAuth();
   if (!user || user.role !== 'admin') {
     return <div className="p-8 text-red-600">Access denied. Admins only.</div>;

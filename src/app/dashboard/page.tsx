@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../../lib/auth-context';
 import { useRouter } from 'next/navigation';
+import AuthGuard from '@/components/AuthGuard';
 
 interface Prescription {
   id: number;
@@ -28,6 +29,14 @@ interface MedicineItem {
 }
 
 export default function UserDashboard() {
+  return (
+    <AuthGuard requireAuth={true}>
+      <DashboardContent />
+    </AuthGuard>
+  );
+}
+
+function DashboardContent() {
   const { user } = useAuth();
   const router = useRouter();
   const [prescriptions, setPrescriptions] = useState<Prescription[]>([]);
@@ -721,12 +730,15 @@ export default function UserDashboard() {
                           rx.status === 'delivered' ? 'bg-green-100 text-green-800' :
                           rx.status === 'dispatched' ? 'bg-blue-100 text-blue-800' :
                           rx.status === 'ready_to_ship' ? 'bg-green-100 text-green-800' :
-                          rx.status === 'approved' ? 'bg-yellow-100 text-yellow-800' :
+                          rx.status === 'approved' && rx.amount > 0 ? 'bg-green-100 text-green-800' :
+                          rx.status === 'approved' && rx.amount === 0 ? 'bg-yellow-100 text-yellow-800' :
                           rx.status === 'unapproved' ? 'bg-gray-100 text-gray-800' :
                           rx.status === 'rejected' ? 'bg-red-100 text-red-800' :
                           'bg-gray-100 text-gray-800'
                         }`}>
                           {rx.status === 'ready_to_ship' ? 'READY TO SHIP' :
+                           rx.status === 'approved' && rx.amount > 0 ? 'APPROVED - READY FOR PAYMENT' :
+                           rx.status === 'approved' && rx.amount === 0 ? 'APPROVED - AWAITING PRICE' :
                            rx.status === 'unapproved' ? 'AWAITING APPROVAL' :
                            rx.status.toUpperCase()}
                         </span>
@@ -742,8 +754,8 @@ export default function UserDashboard() {
                       </td>
                       <td className="border border-green-200 px-4 py-3 text-gray-800">{new Date(rx.createdAt).toLocaleDateString()}</td>
                       <td className="border border-green-200 px-4 py-3">
-                        {/* Payment button only shows when status is 'ready_to_ship' and has price */}
-                        {rx.status === 'ready_to_ship' && rx.amount > 0 && rx.paymentStatus === 'unpaid' && (
+                        {/* Payment button shows when prescription is approved/ready with price and unpaid */}
+                        {((rx.status === 'approved' || rx.status === 'ready_to_ship') && rx.amount > 0 && rx.paymentStatus === 'unpaid') && (
                           <>
                             <button 
                               onClick={() => handlePayment(rx.id)} 
@@ -767,6 +779,9 @@ export default function UserDashboard() {
                         )}
                         {rx.status === 'approved' && rx.amount === 0 && (
                           <span className="text-yellow-600 text-sm">Approved - awaiting price from staff</span>
+                        )}
+                        {rx.status === 'approved' && rx.amount > 0 && rx.paymentStatus === 'unpaid' && (
+                          <span className="text-green-600 text-sm font-semibold">Ready for payment</span>
                         )}
                         {rx.status === 'rejected' && (
                           <span className="text-red-600 text-sm">Rejected by supervisor</span>
