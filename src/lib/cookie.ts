@@ -12,5 +12,23 @@ export function getCookie(name: string): string | null {
 }
 
 export function deleteCookie(name: string) {
+  // Multiple deletion methods for better compatibility
+  const domain = window.location.hostname;
+  
+  // Method 1: Basic deletion
   document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
+  
+  // Method 2: Delete with domain
+  if (domain.includes('globalpharmatrading.co.uk')) {
+    document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=.globalpharmatrading.co.uk;`;
+    document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=globalpharmatrading.co.uk;`;
+  }
+  
+  // Method 3: Delete without domain
+  document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=;`;
+  
+  // Method 4: Max-age approach
+  document.cookie = `${name}=; max-age=0; path=/;`;
+  
+  console.log(`Attempted to delete cookie: ${name}`);
 }

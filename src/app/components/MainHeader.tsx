@@ -17,29 +17,16 @@ export default function MainHeader() {
 
   // Get user role and set appropriate dashboard URL
   useEffect(() => {
-    const fetchUserRole = async () => {
-      if (user) {
-        try {
-          const response = await fetch('/api/auth/verify', {
-            method: 'GET',
-            credentials: 'include'
-          });
-          
-          if (response.ok) {
-            const data = await response.json();
-            const role = data.user?.role || 'CUSTOMER';
-            setUserRole(role);
-            setDashboardUrl(getDashboardRoute(role));
-          }
-        } catch (error) {
-          console.error('Error fetching user role:', error);
-          // Fallback to customer dashboard
-          setDashboardUrl('/dashboard');
-        }
-      }
-    };
-
-    fetchUserRole();
+    if (user) {
+      // Use the role from the auth context instead of making another API call
+      const role = user.role?.toUpperCase() || 'CUSTOMER';
+      setUserRole(role);
+      setDashboardUrl(getDashboardRoute(role));
+    } else {
+      // Reset to defaults when user is null
+      setUserRole('CUSTOMER');
+      setDashboardUrl('/dashboard');
+    }
   }, [user]);
 
   const handleLogout = () => {

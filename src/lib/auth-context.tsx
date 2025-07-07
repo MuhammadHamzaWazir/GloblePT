@@ -14,6 +14,7 @@ export interface User {
 
 interface AuthContextType {
   user: User | null;
+  isLoading: boolean;
   login: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
 }
@@ -22,31 +23,53 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [lastCheckTime, setLastCheckTime] = useState(0);
 
   useEffect(() => {
-    // Check if user is authenticated by calling a verify endpoint
+    // Check if user is authenticated by calling the auth/me endpoint
     const checkAuth = async () => {
+      const now = Date.now();
+      
+      // Prevent excessive calls - only check once every 5 seconds
+      if (now - lastCheckTime < 5000) {
+        setIsLoading(false);
+        return;
+      }
+      
+      setLastCheckTime(now);
+      
       try {
-        const res = await fetch('/api/auth/verify', {
+        const res = await fetch('/api/auth/me', {
           method: 'GET',
           credentials: 'include'
         });
         
         if (res.ok) {
           const data = await res.json();
-          if (data.user) {
+          if (data.authenticated && data.user) {
             setUser({
               id: data.user.id?.toString() || '',
               name: data.user.name || '',
               email: data.user.email || '',
               role: (data.user.role?.toLowerCase() || 'customer') as UserRole,
             });
+          } else {
+            setUser(null);
           }
+        } else {
+          // Only log errors that aren't 401 (expected when not authenticated)
+          if (res.status !== 401) {
+            console.warn('Auth check failed with status:', res.status);
+          }
+          setUser(null);
         }
       } catch (error) {
         console.log('Auth check failed:', error);
         // User not authenticated, which is fine
         setUser(null);
+      } finally {
+        setIsLoading(false);
       }
     };
 
@@ -109,22 +132,75 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = async () => {
     try {
+      console.log('Starting logout process...');
+      
+      // Clear local state first to prevent any UI issues
+      setUser(null);
+      
+      // Clear any client-side cookies aggressively
+      deleteCookie('pharmacy_auth');
+      
       // Call logout API to clear the httpOnly cookie
-      await fetch('/api/auth/logout', {
+      const response = await fetch('/api/auth/logout', {
         method: 'POST',
         credentials: 'include'
       });
+      
+      const data = await response.json();
+      console.log('Logout API response:', data);
+      
+      // Additional client-side cleanup
+      if (typeof window !== 'undefined') {
+        // Clear localStorage and sessionStorage
+        try {
+          localStorage.removeItem('pharmacy_auth');
+          localStorage.removeItem('user');
+          sessionStorage.removeItem('pharmacy_auth');
+          sessionStorage.removeItem('user');
+        } catch (e) {
+          console.log('Storage cleanup failed:', e);
+        }
+        
+        // Force clear all cookies related to pharmacy
+        const cookies = document.cookie.split(';');
+        cookies.forEach(cookie => {
+          const eqPos = cookie.indexOf('=');
+          const name = eqPos > -1 ? cookie.substr(0, eqPos).trim() : cookie.trim();
+          if (name.includes('pharmacy') || name.includes('auth')) {
+            deleteCookie(name);
+          }
+        });
+      }
+      
+      // Add a small delay to ensure cookie is cleared
+      await new Promise(resolve => setTimeout(resolve, 200));
+      
+      // Force redirect to login page with logout parameter to bypass middleware redirect
+      console.log('Redirecting to login page...');
+      window.location.replace('/auth/login?logout=true');
+      
     } catch (error) {
-      console.error('Logout API call failed:', error);
-    } finally {
-      // Clear local state regardless of API call result
+      console.error('Logout process failed:', error);
+      // Even if API call fails, clear state and redirect
       setUser(null);
-      deleteCookie('pharmacy_auth'); // Clear any non-httpOnly cookies
+      deleteCookie('pharmacy_auth');
+      
+      // Force cleanup even if API failed
+      if (typeof window !== 'undefined') {
+        try {
+          localStorage.clear();
+          sessionStorage.clear();
+        } catch (e) {
+          console.log('Emergency storage clear failed:', e);
+        }
+      }
+      
+      window.location.replace('/auth/login?logout=true');
     }
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, logout }}>
+    <AuthContext.Provider value={{ user, isLoading, login, logout }}>
       {children}
     </AuthContext.Provider>
   );

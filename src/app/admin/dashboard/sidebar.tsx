@@ -6,14 +6,13 @@ import { IconType } from "react-icons";
 import { 
   FaHome, 
   FaUsers, 
-  FaUserFriends, 
   FaExclamationCircle, 
-  FaChartLine,
   FaPrescriptionBottleAlt,
   FaUser,
-  FaShieldAlt,
-  FaIdCard
+  FaIdCard,
+  FaSignOutAlt
 } from "react-icons/fa";
+import { useAuth } from '@/lib/auth-context';
 
 // Define the navigation links with icons
 const navItems = [
@@ -22,13 +21,22 @@ const navItems = [
   { href: "/admin/dashboard/users", label: "Users", icon: FaUsers },
   { href: "/admin/dashboard/prescriptions", label: "Prescriptions", icon: FaPrescriptionBottleAlt },
   { href: "/admin/dashboard/identity-verification", label: "Identity Verification", icon: FaIdCard },
-  { href: "/admin/dashboard/customers", label: "Customers", icon: FaUserFriends },
   { href: "/admin/dashboard/complaints", label: "Complaints", icon: FaExclamationCircle },
-  { href: "/admin/dashboard/sales", label: "Sales", icon: FaChartLine },
 ];
 
 export default function Sidebar() {
   const pathname = usePathname();
+  const { logout } = useAuth();
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+    } catch (error) {
+      console.error('Logout failed:', error);
+      // Redirect anyway to clear any cached state
+      window.location.replace('/auth/login?logout=true');
+    }
+  };
 
   return (
     <aside className="w-64 min-h-screen bg-green-800 text-white flex flex-col py-6 px-4 shadow-xl">
@@ -66,10 +74,13 @@ export default function Sidebar() {
       
       <div className="h-px bg-green-700 my-4"></div>
       
-      <div className="p-4 bg-green-700 rounded-md text-sm">
-        <p className="font-medium">Need help?</p>
-        <p className="text-green-200 mt-1">Check our documentation or contact support</p>
-      </div>
+      <button
+        onClick={handleLogout}
+        className="flex items-center gap-3 px-4 py-3 rounded-md text-green-100 hover:bg-green-700 transition-all duration-200 w-full text-left"
+      >
+        <FaSignOutAlt className="w-5 h-5 text-green-300" />
+        <span>Logout</span>
+      </button>
     </aside>
   );
 }

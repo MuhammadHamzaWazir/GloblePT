@@ -9,6 +9,7 @@ import {
   FaExclamationCircle,
   FaSignOutAlt
 } from "react-icons/fa";
+import { useAuth } from '@/lib/auth-context';
 
 const links = [
   { href: "/dashboard", label: "Dashboard", icon: FaHome },
@@ -18,13 +19,15 @@ const links = [
 
 export default function Sidebar() {
   const pathname = usePathname();
+  const { logout } = useAuth();
 
   const handleLogout = async () => {
     try {
-      await fetch('/api/auth/logout', { method: 'POST' });
-      window.location.href = '/auth/login';
+      await logout();
     } catch (error) {
       console.error('Logout failed:', error);
+      // Redirect anyway to clear any cached state
+      window.location.replace('/auth/login?logout=true');
     }
   };
 
