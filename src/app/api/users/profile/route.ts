@@ -7,20 +7,32 @@ const prisma = new PrismaClient();
 // GET - Fetch user profile
 export async function GET(request: NextRequest) {
   try {
+    console.log('=== PROFILE API DEBUG ===');
+    console.log('Request URL:', request.url);
+    console.log('Request headers:', Object.fromEntries(request.headers.entries()));
+    
     const token = request.cookies.get('pharmacy_auth')?.value;
+    console.log('Token found:', !!token);
+    console.log('Token value (first 20 chars):', token ? token.substring(0, 20) + '...' : 'NONE');
     
     if (!token) {
+      console.log('No pharmacy_auth cookie found');
       return NextResponse.json({ 
         success: false, 
-        message: 'Authentication required' 
+        message: 'Authentication required - no token found' 
       }, { status: 401 });
     }
 
+    console.log('Attempting to verify token...');
     const decoded = verifyToken(token);
+    console.log('Token verification result:', !!decoded);
+    console.log('Decoded user:', decoded ? { id: decoded.id, email: decoded.email } : 'INVALID');
+    
     if (!decoded) {
+      console.log('Token verification failed');
       return NextResponse.json({ 
         success: false, 
-        message: 'Invalid token' 
+        message: 'Invalid or expired token' 
       }, { status: 401 });
     }
 

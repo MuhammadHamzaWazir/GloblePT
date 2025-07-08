@@ -45,13 +45,26 @@ export default function ProfilePage({
 
   const fetchProfile = async () => {
     try {
+      console.log('=== PROFILE FETCH DEBUG ===');
+      console.log('Current user:', user);
+      console.log('Fetching profile data...');
+      
       setLoading(true);
       const response = await fetch(`/api/users/profile`, {
+        method: 'GET',
         credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        },
       });
+
+      console.log('Profile API response status:', response.status);
+      console.log('Profile API response ok:', response.ok);
 
       if (response.ok) {
         const data = await response.json();
+        console.log('Profile API response data:', data);
+        
         if (data.success) {
           setProfileData(data.data);
           setFormData({
@@ -59,9 +72,15 @@ export default function ProfilePage({
             address: data.data.address || '',
             twoFactorEnabled: data.data.twoFactorEnabled || false
           });
+          console.log('Profile data loaded successfully');
+        } else {
+          console.error('Profile API returned success: false');
+          setError(data.message || 'Failed to load profile');
         }
       } else {
-        setError('Failed to load profile');
+        const errorData = await response.text();
+        console.error('Profile API error response:', errorData);
+        setError('Failed to load profile - please try logging in again');
       }
     } catch (error) {
       console.error('Profile fetch error:', error);
