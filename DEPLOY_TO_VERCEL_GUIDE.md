@@ -58,7 +58,6 @@ SMTP_FROM=noreply@globalpharmatrading.co.uk
 # Payment
 STRIPE_SECRET_KEY=your_stripe_secret
 STRIPE_PUBLISHABLE_KEY=your_stripe_publishable
-STRIPE_WEBHOOK_SECRET=your_webhook_secret
 
 # App
 NEXT_PUBLIC_BASE_URL=https://globalpharmatrading.co.uk
