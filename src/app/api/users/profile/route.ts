@@ -7,7 +7,7 @@ const prisma = new PrismaClient();
 // GET - Fetch user profile
 export async function GET(request: NextRequest) {
   try {
-    const token = request.cookies.get('token')?.value;
+    const token = request.cookies.get('pharmacy_auth')?.value;
     
     if (!token) {
       return NextResponse.json({ 
@@ -82,7 +82,7 @@ export async function GET(request: NextRequest) {
 // PUT - Update user profile
 export async function PUT(request: NextRequest) {
   try {
-    const token = request.cookies.get('token')?.value;
+    const token = request.cookies.get('pharmacy_auth')?.value;
     
     if (!token) {
       return NextResponse.json({ 
