@@ -1,7 +1,7 @@
 'use client';
 
 import { createContext, useContext, useState, ReactNode, useEffect } from 'react';
-import { deleteCookie } from './cookie';
+import { deleteCookie, nukeAllCookies } from './cookie';
 
 export type UserRole = 'admin' | 'staff' | 'assistant' | 'customer';
 
@@ -132,84 +132,133 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = async () => {
     try {
-      console.log('=== LOGOUT PROCESS STARTED ===');
+      console.log('🔥🔥🔥 NUCLEAR LOGOUT PROCESS STARTED 🔥🔥🔥');
       const timestamp = new Date().toISOString();
-      console.log(`[${timestamp}] Starting comprehensive logout process...`);
+      console.log(`🔥 [${timestamp}] NUCLEAR LOGOUT: Starting most aggressive cookie deletion...`);
       
       // Clear local state first to prevent any UI issues
       setUser(null);
-      console.log(`[${timestamp}] User state cleared`);
+      console.log(`🔥 [${timestamp}] User state cleared`);
       
-      // STEP 1: Aggressive client-side cookie deletion BEFORE API call
-      console.log(`[${timestamp}] Starting aggressive cookie deletion...`);
+      // NUCLEAR STEP 1: NUKE ALL COOKIES BEFORE API CALL
+      console.log(`🔥 [${timestamp}] INITIATING NUCLEAR COOKIE DELETION...`);
       
       if (typeof window !== 'undefined') {
         // Get all cookies before deletion for debugging
         const allCookiesBefore = document.cookie;
-        console.log(`[${timestamp}] All cookies before deletion:`, allCookiesBefore);
+        console.log(`🔥 [${timestamp}] All cookies before NUCLEAR deletion:`, allCookiesBefore);
         
-        // ENHANCED: Clear ALL cookies from the domain, not just pharmacy-related ones
-        const allCookies = document.cookie.split(';');
-        const cookieNames = allCookies.map(cookie => {
+        // NUCLEAR APPROACH: Use the nuclear function
+        nukeAllCookies();
+        
+        // ADDITIONAL BRUTE FORCE: Try to delete EVERY possible cookie combination
+        const possibleCookieNames = [
+          'pharmacy_auth', 'token', 'session', 'auth_token', 'user_session', 
+          'remember_token', 'csrf_token', 'user', 'user_id', 'userid', 
+          'user_token', 'access_token', 'refresh_token', 'jwt', 'jwt_token',
+          'bearer_token', 'api_token', 'login_token', 'auth', 'authentication',
+          'pharmacy_session', 'pharmacy_user', 'pharmacy_token', 'global_pharma_auth',
+          'globalpharma_auth', 'pharmacy_remember', 'user_preferences',
+          '__Secure-pharmacy_auth', '__Host-pharmacy_auth'
+        ];
+        
+        // Also try to extract any existing cookie names
+        const existingCookies = document.cookie.split(';').map(cookie => {
           const eqPos = cookie.indexOf('=');
           return eqPos > -1 ? cookie.substr(0, eqPos).trim() : cookie.trim();
         }).filter(name => name.length > 0);
         
-        console.log(`[${timestamp}] Found ${cookieNames.length} cookies to clear:`, cookieNames);
+        const allCookieNames = [...new Set([...possibleCookieNames, ...existingCookies])];
+        console.log(`🔥 [${timestamp}] TARGETING ${allCookieNames.length} cookies for NUCLEAR deletion:`, allCookieNames);
         
-        // Clear each cookie with multiple deletion strategies
-        cookieNames.forEach(cookieName => {
-          // Use the enhanced deleteCookie function
+        // NUCLEAR DELETE EACH COOKIE
+        allCookieNames.forEach((cookieName, index) => {
+          console.log(`🔥 [${timestamp}] NUCLEAR deletion ${index + 1}/${allCookieNames.length}: ${cookieName}`);
           deleteCookie(cookieName);
-          
-          // Additional brute force deletion for each cookie
-          const domain = window.location.hostname;
-          const deletionAttempts = [
-            `${cookieName}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/;`,
-            `${cookieName}=; max-age=0; path=/;`,
-            `${cookieName}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; domain=${domain};`,
-            `${cookieName}=; max-age=0; path=/; domain=${domain};`,
-            `${cookieName}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; domain=.${domain};`,
-            `${cookieName}=; max-age=0; path=/; domain=.${domain};`,
-            `${cookieName}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; secure;`,
-            `${cookieName}=; max-age=0; path=/; secure;`
+        });
+        
+        // ADDITIONAL NUCLEAR APPROACH: Raw document.cookie manipulation
+        const domain = window.location.hostname;
+        const nuclearDeletionAttempts = [];
+        
+        for (const cookieName of allCookieNames) {
+          // Every possible combination for maximum destruction
+          const deletionCombos = [
+            `${cookieName}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; max-age=0`,
+            `${cookieName}=; expires=Wed, 31 Dec 1969 23:59:59 GMT; path=/; max-age=-1`,
+            `${cookieName}=DELETED; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; max-age=0`,
+            `${cookieName}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; domain=${domain}; max-age=0`,
+            `${cookieName}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; domain=.${domain}; max-age=0`,
+            `${cookieName}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; secure; max-age=0`,
+            `${cookieName}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; httponly; max-age=0`,
+            `${cookieName}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; secure; httponly; max-age=0`,
+            `${cookieName}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; samesite=lax; max-age=0`,
+            `${cookieName}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; samesite=strict; max-age=0`,
+            `${cookieName}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; samesite=none; secure; max-age=0`
           ];
           
-          deletionAttempts.forEach((cookieString, index) => {
+          if (domain.includes('globalpharmatrading.co.uk')) {
+            deletionCombos.push(
+              `${cookieName}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; domain=globalpharmatrading.co.uk; max-age=0`,
+              `${cookieName}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; domain=.globalpharmatrading.co.uk; max-age=0`,
+              `${cookieName}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; domain=www.globalpharmatrading.co.uk; max-age=0`,
+              `${cookieName}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; domain=globalpharmatrading.co.uk; secure; max-age=0`,
+              `${cookieName}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; domain=.globalpharmatrading.co.uk; secure; max-age=0`
+            );
+          }
+          
+          nuclearDeletionAttempts.push(...deletionCombos);
+        }
+        
+        console.log(`🔥 [${timestamp}] Executing ${nuclearDeletionAttempts.length} NUCLEAR deletion attempts...`);
+        
+        // Execute all nuclear deletion attempts
+        nuclearDeletionAttempts.forEach((attempt, index) => {
+          try {
+            document.cookie = attempt;
+          } catch (e) {
+            // Continue with other attempts
+          }
+        });
+        
+        // Clear ALL storage
+        try {
+          // Clear localStorage
+          const localStorageKeys = Object.keys(localStorage);
+          localStorageKeys.forEach(key => {
             try {
-              document.cookie = cookieString;
+              localStorage.removeItem(key);
             } catch (e) {
-              console.warn(`Failed deletion attempt ${index + 1} for ${cookieName}:`, e);
+              // Continue
             }
           });
           
-          console.log(`[${timestamp}] Applied ${deletionAttempts.length} deletion methods for: ${cookieName}`);
-        });
-        
-        // Clear localStorage and sessionStorage
-        try {
-          localStorage.removeItem('pharmacy_auth');
-          localStorage.removeItem('user');
-          localStorage.removeItem('token');
-          sessionStorage.removeItem('pharmacy_auth');
-          sessionStorage.removeItem('user');
-          sessionStorage.removeItem('token');
-          console.log(`[${timestamp}] Local/session storage cleared`);
+          // Clear sessionStorage
+          const sessionStorageKeys = Object.keys(sessionStorage);
+          sessionStorageKeys.forEach(key => {
+            try {
+              sessionStorage.removeItem(key);
+            } catch (e) {
+              // Continue
+            }
+          });
+          
+          console.log(`🔥 [${timestamp}] NUCLEAR storage clearing complete`);
         } catch (e) {
-          console.log(`[${timestamp}] Storage cleanup failed:`, e);
+          console.log(`🔥 [${timestamp}] Storage nuclear cleanup failed:`, e);
         }
         
-        // Wait a moment and verify cookie deletion
+        // Verify nuclear deletion
         setTimeout(() => {
           const allCookiesAfter = document.cookie;
-          console.log(`[${timestamp}] All cookies after deletion:`, allCookiesAfter);
+          console.log(`🔥 [${timestamp}] Cookies after NUCLEAR deletion:`, allCookiesAfter || 'NO COOKIES REMAINING');
           const pharmaCookieRemaining = allCookiesAfter.includes('pharmacy_auth');
-          console.log(`[${timestamp}] pharmacy_auth still present:`, pharmaCookieRemaining ? 'YES - FAILED' : 'NO - SUCCESS');
-        }, 50);
+          console.log(`🔥 [${timestamp}] pharmacy_auth survival status:`, pharmaCookieRemaining ? '💀 SURVIVED NUCLEAR ATTACK' : '✅ COMPLETELY DESTROYED');
+        }, 100);
       }
       
-      // STEP 2: Call logout API to clear the httpOnly cookie
-      console.log(`[${timestamp}] Calling logout API...`);
+      // NUCLEAR STEP 2: Call logout API to clear server-side httpOnly cookies
+      console.log(`🔥 [${timestamp}] Calling NUCLEAR logout API...`);
       const response = await fetch('/api/auth/logout', {
         method: 'POST',
         credentials: 'include',
@@ -220,13 +269,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       
       if (response.ok) {
         const data = await response.json();
-        console.log(`[${timestamp}] Logout API response:`, data);
+        console.log(`🔥 [${timestamp}] NUCLEAR logout API response:`, data);
       } else {
-        console.warn(`[${timestamp}] Logout API failed with status:`, response.status);
+        console.warn(`🔥 [${timestamp}] NUCLEAR logout API failed with status:`, response.status);
       }
       
-      // STEP 3: Final cleanup and redirect
-      console.log(`[${timestamp}] Performing final cleanup...`);
+      // NUCLEAR STEP 3: Final cleanup and redirect
+      console.log(`🔥 [${timestamp}] Performing NUCLEAR final cleanup...`);
       
       // Additional delay to ensure all operations complete
       await new Promise(resolve => setTimeout(resolve, 300));
