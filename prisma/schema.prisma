@@ -64,6 +64,7 @@ model User {
   resolvedComplaints Complaint[] @relation("ComplaintResolver")
   prescriptions Prescription[]
   approvedPrescriptions Prescription[] @relation("PrescriptionApprover")
+  orders Order[] @relation("UserOrders")
   
   // Identity verification relationships
   identityVerifier User? @relation("IdentityVerifier", fields: [identityVerifiedBy], references: [id])
@@ -176,13 +177,16 @@ model Prescription {
   deliveryAddress String
   
   // Status tracking
-  status        String   @default("pending") // pending, approved, rejected, ready_to_ship, dispatched, delivered
+  status        String   @default("pending") // pending, approved, rejected, ready_to_ship, dispatched, delivered, paid
   paymentStatus String   @default("unpaid")  // unpaid, paid, refunded
   
   // Payment tracking
   stripePaymentIntentId String?
   stripeChargeId       String?
   paidAt               DateTime?
+  
+  // Order relationship
+  order         Order?   // One-to-one relationship with Order
   
   // Admin actions
   approvedBy    Int?
@@ -194,6 +198,48 @@ model Prescription {
   trackingNumber String?
   dispatchedAt   DateTime?
   deliveredAt    DateTime?
+  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model Order {
+  id            Int      @id @default(autoincrement())
+  orderNumber   String   @unique // Generated order number for tracking
+  
+  // Customer information
+  userId        Int
+  user          User     @relation("UserOrders", fields: [userId], references: [id])
+  
+  // Prescription relationship
+  prescriptionId Int     @unique
+  prescription   Prescription @relation(fields: [prescriptionId], references: [id])
+  
+  // Order details
+  totalAmount   Float
+  currency      String   @default("gbp")
+  
+  // Delivery information
+  deliveryAddress String
+  deliveryMethod  String   @default("standard") // standard, express, collect
+  estimatedDelivery DateTime?
+  
+  // Payment information
+  stripePaymentIntentId String?
+  stripeChargeId       String?
+  paidAt               DateTime?
+  
+  // Order status tracking
+  status        String   @default("confirmed") // confirmed, processing, dispatched, delivered, cancelled
+  
+  // Tracking information
+  trackingNumber String?
+  courierName    String?
+  dispatchedAt   DateTime?
+  deliveredAt    DateTime?
+  
+  // Order notes
+  notes         String?  @db.Text
   
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
