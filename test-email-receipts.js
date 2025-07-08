@@ -19,7 +19,7 @@ async function testEmailReceipts() {
     // 1. Test payment receipt email
     console.log('\n📝 Step 1: Testing payment receipt email...');
     
-    const { sendPaymentReceipt } = require('../src/lib/email-receipts');
+    const { sendPaymentReceipt } = require('./src/lib/email-receipts');
     
     const testReceiptData = {
       order: {
@@ -57,7 +57,7 @@ async function testEmailReceipts() {
     // 2. Test order status update email
     console.log('\n📦 Step 2: Testing order status update email...');
     
-    const { sendOrderStatusUpdate } = require('../src/lib/email-receipts');
+    const { sendOrderStatusUpdate } = require('./src/lib/email-receipts');
     
     const testStatusData = {
       order: {
@@ -124,7 +124,7 @@ async function testEmailReceipts() {
     console.log('✅ Test prescription created:', testPrescription.id);
     
     // Simulate the complete payment and order creation process
-    const { createOrderFromPrescription } = require('../src/lib/order-utils');
+    const { createOrderFromPrescription } = require('./src/lib/order-utils');
     
     const paymentData = {
       stripePaymentIntentId: 'pi_test_email_' + Date.now(),
