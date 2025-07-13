@@ -51,6 +51,7 @@ export default function MainFooter() {
                 </a>
               </p>
               <p>Reg: <a href="https://www.pharmacyregulation.org/registers/pharmacist/2073649" target="_blank" className="hover:underline">2073649</a></p>
+              <p><strong>Company No:</strong> 15990775</p>
               <Image src="/assets/gphc-logo.svg" alt="GPhC Logo" width={60} height={30} className="mt-2" />
             </div>
           </div>

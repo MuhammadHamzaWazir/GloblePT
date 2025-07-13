@@ -26,14 +26,6 @@ interface Complaint {
     name: string;
     email: string;
   };
-  assignedBy?: {
-    name: string;
-    email: string;
-  };
-  resolvedBy?: {
-    name: string;
-    email: string;
-  };
 }
 
 interface Staff {
@@ -88,21 +80,28 @@ export default function AdminComplaintsPage() {
   useEffect(() => {
     const fetchStaff = async () => {
       try {
-        const response = await fetch('/api/admin/users?role=staff', {
+        console.log('🔍 Fetching staff for dropdown...');
+        const response = await fetch('/api/admin/staff', {
           credentials: 'include'
         });
+        
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
         const data = await response.json();
-        if (response.ok && data.success) {
-          // Convert users to staff format for assignment
-          const staffList = data.data.users.map((u: any) => ({
-            id: u.staffRecord?.id || u.id,
-            name: u.name,
-            email: u.email
-          }));
-          setStaff(staffList);
+        console.log('🔍 Staff API response:', data);
+        
+        if (data.success) {
+          setStaff(data.data?.staff || []);
+        } else {
+          console.error('Failed to fetch staff:', data.message);
+          setStaff([]); // Set empty array as fallback
         }
       } catch (err) {
         console.error('Failed to fetch staff:', err);
+        setStaff([]); // Set empty array as fallback
+        // Don't throw the error, just log it
       }
     };
 
@@ -115,6 +114,8 @@ export default function AdminComplaintsPage() {
   const fetchComplaints = async (page = 1) => {
     try {
       setIsLoading(true);
+      console.log('🔍 Fetching complaints for page:', page);
+      
       const params = new URLSearchParams({
         page: page.toString(),
         limit: '10',
@@ -124,19 +125,35 @@ export default function AdminComplaintsPage() {
         ...(priorityFilter && { priority: priorityFilter })
       });
 
+      console.log('🔍 API URL:', `/api/admin/complaints?${params}`);
+
       const response = await fetch(`/api/admin/complaints?${params}`, {
         credentials: 'include'
       });
 
+      console.log('🔍 Response status:', response.status);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
       const data = await response.json();
+      console.log('🔍 Response data:', data);
 
-      if (response.ok && data.success) {
-        setComplaints(data.data.complaints);
-        setPagination(data.data.pagination);
+      if (data.success) {
+        const complaints = data.data?.complaints || [];
+        const pagination = data.data?.pagination || null;
+        
+        console.log('✅ Complaints fetched successfully:', complaints.length);
+        setComplaints(complaints);
+        setPagination(pagination);
+        setError(''); // Clear any previous errors
       } else {
+        console.log('❌ Failed to fetch complaints:', data.message);
         setError(data.message || 'Failed to fetch complaints');
       }
     } catch (err) {
+      console.error('❌ Network error:', err);
       setError('Failed to fetch complaints');
     } finally {
       setIsLoading(false);
@@ -144,8 +161,16 @@ export default function AdminComplaintsPage() {
   };
 
   useEffect(() => {
+    console.log('🔍 Admin complaints page useEffect triggered');
+    console.log('🔍 User:', user);
+    
     if (user && user.role === 'admin') {
+      console.log('✅ Admin user confirmed, fetching complaints...');
       fetchComplaints();
+    } else if (user && user.role !== 'admin') {
+      console.log('❌ User is not admin:', user.role);
+    } else {
+      console.log('❌ No user found');
     }
   }, [user, search, statusFilter, categoryFilter, priorityFilter]);
 
@@ -320,28 +345,28 @@ export default function AdminComplaintsPage() {
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Complaint
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="hidden sm:table-cell px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Customer
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="hidden md:table-cell px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Category
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="hidden lg:table-cell px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Priority
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Status
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="hidden xl:table-cell px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Assigned To
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="hidden lg:table-cell px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Created
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Actions
                 </th>
               </tr>
@@ -350,64 +375,94 @@ export default function AdminComplaintsPage() {
               {isLoading ? (
                 <tr>
                   <td colSpan={8} className="px-6 py-4 text-center">
-                    Loading complaints...
+                    <div className="flex justify-center items-center">
+                      <svg className="animate-spin h-5 w-5 text-gray-500 mr-2" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      Loading complaints...
+                    </div>
                   </td>
                 </tr>
               ) : complaints.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="px-6 py-4 text-center text-gray-500">
-                    No complaints found
+                  <td colSpan={8} className="px-6 py-8 text-center text-gray-500">
+                    <div className="flex flex-col items-center">
+                      <svg className="h-12 w-12 text-gray-400 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                      </svg>
+                      <p className="text-lg font-medium">No complaints found</p>
+                      <p className="text-sm">Try adjusting your search or filter criteria</p>
+                    </div>
                   </td>
                 </tr>
               ) : (
                 complaints.map((complaint) => (
-                  <tr key={complaint.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4">
-                      <div>
-                        <div className="text-sm font-medium text-gray-900 truncate max-w-xs">
+                  <tr key={complaint.id} className="hover:bg-gray-50 transition-colors">
+                    <td className="px-3 py-4">
+                      <div className="space-y-1">
+                        <div className="text-sm font-medium text-gray-900 line-clamp-2">
                           {complaint.title}
                         </div>
-                        <div className="text-sm text-gray-500 truncate max-w-xs">
+                        <div className="text-xs text-gray-500 line-clamp-1">
                           {complaint.description}
+                        </div>
+                        {/* Mobile-only: Show customer and category */}
+                        <div className="sm:hidden space-y-1">
+                          <div className="text-xs text-gray-600">
+                            👤 {complaint.user.name}
+                          </div>
+                          <div className="flex space-x-2">
+                            <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getCategoryBadgeColor(complaint.category)}`}>
+                              {complaint.category}
+                            </span>
+                            <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getPriorityBadgeColor(complaint.priority)}`}>
+                              {complaint.priority}
+                            </span>
+                          </div>
                         </div>
                       </div>
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="hidden sm:table-cell px-3 py-4">
                       <div>
                         <div className="text-sm font-medium text-gray-900">
                           {complaint.user.name}
                         </div>
-                        <div className="text-sm text-gray-500">
+                        <div className="text-xs text-gray-500">
                           {complaint.user.email}
                         </div>
                       </div>
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="hidden md:table-cell px-3 py-4">
                       <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getCategoryBadgeColor(complaint.category)}`}>
                         {complaint.category}
                       </span>
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="hidden lg:table-cell px-3 py-4">
                       <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getPriorityBadgeColor(complaint.priority)}`}>
                         {complaint.priority}
                       </span>
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="px-3 py-4">
                       <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusBadgeColor(complaint.status)}`}>
                         {complaint.status}
                       </span>
                     </td>
-                    <td className="px-6 py-4 text-sm text-gray-900">
+                    <td className="hidden xl:table-cell px-3 py-4 text-sm text-gray-900">
                       {complaint.assignedTo ? complaint.assignedTo.name : 'Unassigned'}
                     </td>
-                    <td className="px-6 py-4 text-sm text-gray-500">
+                    <td className="hidden lg:table-cell px-3 py-4 text-sm text-gray-500">
                       {new Date(complaint.createdAt).toLocaleDateString()}
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="px-3 py-4">
                       <button
                         onClick={() => openModal(complaint)}
-                        className="text-blue-600 hover:text-blue-900 text-sm font-medium"
+                        className="inline-flex items-center px-3 py-1 border border-transparent text-xs font-medium rounded-md text-blue-600 bg-blue-100 hover:bg-blue-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
                       >
+                        <svg className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                        </svg>
                         Manage
                       </button>
                     </td>
@@ -472,11 +527,11 @@ export default function AdminComplaintsPage() {
 
       {/* Complaint Management Modal */}
       {isModalOpen && selectedComplaint && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-2 sm:p-4 z-50">
           <div className="bg-white rounded-lg max-w-2xl w-full max-h-screen overflow-y-auto">
-            <div className="p-6">
+            <div className="p-4 sm:p-6">
               <div className="flex justify-between items-center mb-4">
-                <h2 className="text-xl font-bold text-gray-900">
+                <h2 className="text-lg sm:text-xl font-bold text-gray-900">
                   Manage Complaint #{selectedComplaint.id}
                 </h2>
                 <button
@@ -495,7 +550,7 @@ export default function AdminComplaintsPage() {
                 <h3 className="font-semibold text-gray-900 mb-2">{selectedComplaint.title}</h3>
                 <p className="text-gray-700 mb-4">{selectedComplaint.description}</p>
                 
-                <div className="grid grid-cols-2 gap-4 text-sm">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
                   <div>
                     <span className="font-medium">Customer:</span> {selectedComplaint.user.name}
                   </div>
@@ -513,7 +568,7 @@ export default function AdminComplaintsPage() {
 
               {/* Management Controls */}
               <div className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       Status
@@ -592,17 +647,17 @@ export default function AdminComplaintsPage() {
               </div>
 
               {/* Action Buttons */}
-              <div className="mt-6 flex justify-end space-x-3">
+              <div className="mt-6 flex flex-col sm:flex-row justify-end space-y-3 sm:space-y-0 sm:space-x-3">
                 <button
                   onClick={() => setIsModalOpen(false)}
-                  className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+                  className="w-full sm:w-auto px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={handleUpdateComplaint}
                   disabled={actionLoading}
-                  className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
+                  className="w-full sm:w-auto px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
                 >
                   {actionLoading ? 'Updating...' : 'Update Complaint'}
                 </button>

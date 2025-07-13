@@ -12,9 +12,7 @@ async function testComplaintSystem() {
     // Get a customer for testing
     const customer = await prisma.user.findFirst({
       where: {
-        role: {
-          name: 'customer'
-        }
+        role: 'customer'
       }
     });
 
@@ -30,10 +28,14 @@ async function testComplaintSystem() {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        email: 'customer@pharmacy.com',
+        email: 'test@example.com',
         password: 'password123'
       })
     });
+
+    console.log('Login response status:', loginResponse.status);
+    const loginData = await loginResponse.json();
+    console.log('Login response data:', loginData);
 
     if (!loginResponse.ok) {
       console.log('❌ Customer login failed');

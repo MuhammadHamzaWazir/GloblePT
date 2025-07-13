@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
 import { loginSchema } from "@/lib/validations";
 import { generateToken } from "@/lib/auth";
+import { getDashboardRoute } from "@/lib/utils";
 
 export async function POST(req: Request) {
   try {
@@ -23,36 +24,29 @@ export async function POST(req: Request) {
     const { email, password } = validationResult.data;
     console.log("Validated email:", email);
 
-    // Find user and include their role (with error handling for missing fields)
+    // Find user with the updated schema
     console.log("Attempting to log in user:", email);
     let user;
     try {
       user = await prisma.user.findUnique({
         where: { email },
-        include: { role: true },
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          password: true,
+          role: true,
+          accountStatus: true,
+          identityVerified: true,
+          createdAt: true,
+          updatedAt: true,
+        }
       });
     } catch (dbError) {
-      console.log("Database schema not yet migrated, checking with basic fields only");
-      try {
-        user = await prisma.user.findUnique({
-          where: { email },
-          select: {
-            id: true,
-            name: true,
-            email: true,
-            password: true,
-            roleId: true,
-            createdAt: true,
-            updatedAt: true,
-            role: true
-          }
-        });
-      } catch (secondError) {
-        console.error("Database connection failed:", secondError);
-        return NextResponse.json({ 
-          message: "Database temporarily unavailable." 
-        }, { status: 503 });
-      }
+      console.error("Database query failed:", dbError);
+      return NextResponse.json({ 
+        message: "Database temporarily unavailable." 
+      }, { status: 503 });
     }
 
     if (!user) {
@@ -60,7 +54,20 @@ export async function POST(req: Request) {
       return NextResponse.json({ message: "Invalid email or password." }, { status: 401 });
     }
 
-    console.log("User found:", user.email, "Role:", user.role?.name);
+    console.log("User found:", user.email, "Role:", user.role);
+
+    // Check if account is approved (new verification check)
+    if (user.accountStatus === 'pending') {
+      return NextResponse.json({ 
+        message: "Your account is pending approval. Please wait for admin verification of your identity documents. You will receive an email once approved." 
+      }, { status: 403 });
+    }
+
+    if (user.accountStatus === 'suspended' || user.accountStatus === 'blocked') {
+      return NextResponse.json({ 
+        message: "Your account has been suspended. Please contact customer service for assistance." 
+      }, { status: 403 });
+    }
 
     // Check password
     const valid = await bcrypt.compare(password, user.password);
@@ -100,8 +107,9 @@ export async function POST(req: Request) {
           id: user.id,
           email: user.email,
           name: user.name,
-          role: user.role?.name || 'USER'
-        }
+          role: user.role || 'customer'
+        },
+        redirectUrl: getDashboardRoute(user.role || 'customer')
       }, { status: 200 });
     } else {
       // 2FA not enabled, proceed with direct login
@@ -109,7 +117,7 @@ export async function POST(req: Request) {
         id: user.id.toString(),
         email: user.email,
         name: user.name,
-        role: user.role?.name || 'USER'
+        role: user.role || 'customer'
       });
 
       const response = NextResponse.json({ 
@@ -119,8 +127,9 @@ export async function POST(req: Request) {
           id: user.id,
           email: user.email,
           name: user.name,
-          role: user.role?.name || 'USER'
-        }
+          role: user.role || 'customer'
+        },
+        redirectUrl: getDashboardRoute(user.role || 'customer')
       }, { status: 200 });
 
       // Set authentication cookie

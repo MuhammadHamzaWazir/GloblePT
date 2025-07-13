@@ -9,12 +9,14 @@ import { getDashboardRoute } from '@/lib/utils';
 interface AuthGuardProps {
   children: React.ReactNode;
   requireAuth?: boolean;
+  requireRole?: string;
   redirectTo?: string;
 }
 
 export default function AuthGuard({ 
   children, 
   requireAuth = true,
+  requireRole,
   redirectTo = '/auth/login' 
 }: AuthGuardProps) {
   const router = useRouter();
@@ -39,6 +41,13 @@ export default function AuthGuard({
     // Handle unauthenticated user on protected pages  
     if (!user && requireAuth) {
       router.push(redirectTo);
+      return;
+    }
+
+    // Handle role-based access
+    if (user && requireRole && user.role !== requireRole) {
+      const dashboardRoute = getDashboardRoute(user.role);
+      router.push(dashboardRoute);
       return;
     }
 

@@ -26,7 +26,7 @@ export async function PUT(
     // Verify JWT token and check role
     const decoded = jwt.verify(token, process.env.JWT_SECRET!) as any;
     const user = await prisma.user.findUnique({
-      where: { id: decoded.userId },
+      where: { id: parseInt(decoded.id) }, // Fixed: changed from decoded.userId to decoded.id
       include: { role: true }
     });
 

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { generateToken } from "@/lib/auth";
+import { getDashboardRoute } from "@/lib/utils";
 import { cookies } from "next/headers";
 import { verificationStore } from "@/lib/verification-store";
 import crypto from "crypto";
@@ -32,7 +33,15 @@ export async function POST(req: Request) {
     try {
       user = await prisma.user.findUnique({
         where: { email },
-        include: { role: true }
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          password: true,
+          role: true,
+          createdAt: true,
+          updatedAt: true,
+        }
       });
     } catch (dbError) {
       console.log("Database schema not yet migrated, checking with basic fields only");
@@ -44,10 +53,9 @@ export async function POST(req: Request) {
             name: true,
             email: true,
             password: true,
-            roleId: true,
+            role: true,
             createdAt: true,
             updatedAt: true,
-            role: true
           }
         });
       } catch (secondError) {
@@ -141,7 +149,7 @@ export async function POST(req: Request) {
       id: user.id.toString(),
       email: user.email,
       name: user.name,
-      role: user.role?.name || 'USER'
+      role: user.role || 'customer'
     });
 
     // Set secure cookie
@@ -161,7 +169,7 @@ export async function POST(req: Request) {
       token: token.substring(0, 20) + "...",
       options: cookieOptions,
       userEmail: user.email,
-      userRole: user.role?.name,
+      userRole: user.role,
       environment: process.env.NODE_ENV
     });
 
@@ -172,8 +180,9 @@ export async function POST(req: Request) {
         id: user.id,
         email: user.email,
         name: user.name,
-        role: user.role?.name || 'USER'
-      }
+        role: user.role || 'customer'
+      },
+      redirectUrl: getDashboardRoute(user.role || 'customer')
     }, { status: 200 });
 
     // Also set cookie on response headers for extra reliability

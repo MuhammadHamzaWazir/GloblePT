@@ -1,11 +1,8 @@
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "../lib/auth-context";
-import { headers } from "next/headers";
-import { SEOSetting } from "../lib/types";
 import { Suspense } from "react";
-import MainHeader from "./components/MainHeader";
-import MainFooter from "./components/MainFooter";
+import DynamicLayout from "./components/DynamicLayout";
 
 export const metadata = {
   title: "Global Pharma Trading - Online Pharmacy Management",
@@ -22,57 +19,28 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-async function fetchSEO(path: string): Promise<SEOSetting | null> {
-  try {
-    const res = await fetch(
-      `${process.env.NEXT_PUBLIC_BASE_URL || ''}/api/seo?page=${encodeURIComponent(path)}`
-    );
-    if (!res.ok) return null;
-    return await res.json();
-  } catch {
-    return null;
-  }
-}
-
-const dashboardPaths = [
-  "/dashboard",
-  "/dashboard/complaints",
-  "/admin/dashboard",
-  "/admin/users",
-  "/admin/customers",
-  "/admin/staff",
-  "/admin/roles",
-  "/admin/prescriptions",
-  "/admin/complaints",
-  "/admin/contact",
-  "/staff-dashboard",
-  "/assistant-portal"
-];
-
-export default async function RootLayout({
+export default function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const headersList = await headers();
-  const path = headersList.get('x-nextjs-pathname') || '/';
-  const seo = await fetchSEO(path);
-  const isDashboard = dashboardPaths.some(p => path.startsWith(p));
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <head>
-        <title>{seo?.title || "Pharmacy"}</title>
+        <title>Global Pharma Trading - Online Pharmacy Management</title>
         <meta
           name="description"
-          content={seo?.description || "Pharmacy website"}
+          content="Professional pharmacy management system for prescriptions, customer service, and healthcare solutions."
         />
-        {seo?.canonical && <link rel="canonical" href={seo.canonical} />}
       </head>
-      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
+      <body 
+        className={`${geistSans.variable} ${geistMono.variable} antialiased`} 
+        suppressHydrationWarning={true}
+      >
         <AuthProvider>
-          {!isDashboard && <MainHeader />}
-          <Suspense fallback={null}>{children}</Suspense>
-          {!isDashboard && <MainFooter />}
+          <DynamicLayout>
+            <Suspense fallback={null}>{children}</Suspense>
+          </DynamicLayout>
         </AuthProvider>
       </body>
     </html>

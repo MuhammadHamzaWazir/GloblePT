@@ -36,7 +36,7 @@ export async function GET(request: NextRequest) {
       }, { status: 401 });
     }
 
-    // Find user with basic fields first
+    // Find user with basic fields
     const user = await prisma.user.findUnique({
       where: { id: parseInt(decoded.id) },
       select: {
@@ -44,11 +44,7 @@ export async function GET(request: NextRequest) {
         name: true,
         email: true,
         address: true,
-        role: {
-          select: {
-            name: true
-          }
-        }
+        role: true // This is now an enum, not a relation
       }
     });
 
@@ -154,11 +150,7 @@ export async function PUT(request: NextRequest) {
         name: true,
         email: true,
         address: true,
-        role: {
-          select: {
-            name: true
-          }
-        }
+        role: true // This is now an enum, not a relation
       }
     });
 

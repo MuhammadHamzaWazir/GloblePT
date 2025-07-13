@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { getDashboardRoute } from '../../../lib/utils';
 import TwoFactorModal from '../../components/TwoFactorModal';
 import AuthGuard from '@/components/AuthGuard';
@@ -16,15 +16,27 @@ export default function LoginPage() {
 
 function LoginPageContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [showTwoFactor, setShowTwoFactor] = useState(false);
   const [userEmail, setUserEmail] = useState('');
   const [twoFactorError, setTwoFactorError] = useState('');
   const [verifyingCode, setVerifyingCode] = useState(false);
+  const [successMessage, setSuccessMessage] = useState('');
 
   // Check if user is already authenticated and redirect
   useEffect(() => {
+    // Check for registration success message
+    if (searchParams?.get('registered') === 'true') {
+      const message = searchParams.get('message');
+      if (message) {
+        setSuccessMessage(decodeURIComponent(message));
+      } else {
+        setSuccessMessage('Registration successful! Please wait for admin approval before logging in.');
+      }
+    }
+
     const checkAuthAndRedirect = async () => {
       try {
         const response = await fetch('/api/auth/me', {
@@ -37,7 +49,7 @@ function LoginPageContent() {
           if (data.user && data.user.role) {
             console.log('User already authenticated, redirecting...', data.user);
             const dashboardRoute = getDashboardRoute(data.user.role);
-            window.location.href = dashboardRoute;
+            window.location.replace(dashboardRoute);
           }
         }
       } catch (error) {
@@ -47,7 +59,7 @@ function LoginPageContent() {
 
     // Check auth status when component mounts
     checkAuthAndRedirect();
-  }, []);
+  }, [searchParams]);
 
   // Also check auth status when 2FA modal closes successfully
   useEffect(() => {
@@ -65,7 +77,7 @@ function LoginPageContent() {
               if (data.user && data.user.role) {
                 console.log('User authenticated after 2FA, redirecting...', data.user);
                 const dashboardRoute = getDashboardRoute(data.user.role);
-                window.location.href = dashboardRoute;
+                window.location.replace(dashboardRoute);
               }
             }
           } catch (error) {
@@ -124,15 +136,10 @@ function LoginPageContent() {
         }
       } else {
         // If 2FA is disabled, login was successful and cookie is already set
-        const userRole = loginData.user?.role;
+        const redirectUrl = loginData.redirectUrl || getDashboardRoute(loginData.user?.role || 'customer');
         
-        if (userRole) {
-          const dashboardRoute = getDashboardRoute(userRole);
-          console.log(`Redirecting ${userRole} to ${dashboardRoute}`);
-          router.push(dashboardRoute);
-        } else {
-          router.push('/dashboard');
-        }
+        console.log(`Redirecting ${loginData.user?.role} to ${redirectUrl}`);
+        router.push(redirectUrl);
       }
     } catch (err: any) {
       setError(err.message || 'Login failed');
@@ -172,11 +179,11 @@ function LoginPageContent() {
       
       // Add a small delay to ensure cookie is set properly, then redirect
       setTimeout(() => {
-        const dashboardRoute = userRole ? getDashboardRoute(userRole) : '/dashboard';
-        console.log(`Force redirecting to: ${dashboardRoute}`);
+        const redirectUrl = data.redirectUrl || getDashboardRoute(data.user?.role || 'customer');
+        console.log(`Force redirecting to: ${redirectUrl}`);
         
         // Use replace instead of href to prevent back button issues
-        window.location.replace(dashboardRoute);
+        window.location.replace(redirectUrl);
       }, 500); // 500ms delay to ensure cookie propagation
       
     } catch (err: any) {
@@ -232,6 +239,11 @@ function LoginPageContent() {
                 'Login'
               )}
             </button>
+            {successMessage && (
+              <div className="text-green-600 mt-2 text-center bg-green-50 p-3 rounded-md border border-green-200">
+                {successMessage}
+              </div>
+            )}
             {error && <div className="text-red-600 mt-2 text-center bg-red-50 p-3 rounded-md">{error}</div>}
           </form>
           <p className="mt-6 text-center text-green-800">Don't have an account? <a href="/auth/register" className="text-green-700 underline font-semibold">Register</a></p>

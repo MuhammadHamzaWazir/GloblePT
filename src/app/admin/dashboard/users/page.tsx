@@ -8,15 +8,11 @@ interface User {
   name: string;
   email: string;
   address: string;
-  role: {
-    id: number;
-    name: string;
-  } | null;
-  supervisor?: {
-    id: number;
-    name: string;
-    email: string;
-  } | null;
+  phone?: string;
+  role: string;
+  accountStatus: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 interface Role {
@@ -44,8 +40,8 @@ export default function UsersPage() {
     email: "",
     password: "",
     address: "",
-    roleId: 0,
-    supervisorId: 0,
+    role: "customer",
+    phone: "",
   });
   
   // Pagination and search states
@@ -126,8 +122,8 @@ export default function UsersPage() {
         email: user.email,
         password: "",
         address: user.address,
-        roleId: user.role?.id || 0,
-        supervisorId: user.supervisor?.id || 0,
+        role: user.role || "customer",
+        phone: user.phone || "",
       });
     } else {
       setCurrentUser(null);
@@ -136,8 +132,8 @@ export default function UsersPage() {
         email: "",
         password: "",
         address: "",
-        roleId: 0,
-        supervisorId: 0,
+        role: "customer",
+        phone: "",
       });
     }
     setIsModalOpen(true);
@@ -273,6 +269,7 @@ export default function UsersPage() {
               <th className="py-3 px-4 text-left">ID</th>
               <th className="py-3 px-4 text-left">Name</th>
               <th className="py-3 px-4 text-left">Email</th>
+              <th className="py-3 px-4 text-left">Phone</th>
               <th className="py-3 px-4 text-left">Address</th>
               <th className="py-3 px-4 text-left">Role</th>
               <th className="py-3 px-4 text-left">Supervisor</th>
@@ -282,7 +279,7 @@ export default function UsersPage() {
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan={7} className="py-8 text-center">
+                <td colSpan={8} className="py-8 text-center">
                   <div className="flex justify-center items-center">
                     <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
                     <span className="ml-2">Loading...</span>
@@ -291,7 +288,7 @@ export default function UsersPage() {
               </tr>
             ) : users.length === 0 ? (
               <tr>
-                <td colSpan={7} className="py-8 text-center text-gray-500">
+                <td colSpan={8} className="py-8 text-center text-gray-500">
                   No users found
                 </td>
               </tr>
@@ -301,29 +298,23 @@ export default function UsersPage() {
                   <td className="py-3 px-4">{user.id}</td>
                   <td className="py-3 px-4">{user.name}</td>
                   <td className="py-3 px-4">{user.email}</td>
+                  <td className="py-3 px-4">{user.phone || 'Not provided'}</td>
                   <td className="py-3 px-4 max-w-xs truncate" title={user.address}>
                     {user.address}
                   </td>
                   <td className="py-3 px-4">
                     <span className={`px-2 py-1 rounded-full text-xs font-medium
-                      ${user.role?.name.toLowerCase() === 'admin' ? 'bg-red-100 text-red-800' : 
-                        user.role?.name.toLowerCase() === 'staff' ? 'bg-blue-100 text-blue-800' : 
-                        user.role?.name.toLowerCase() === 'assistant' ? 'bg-purple-100 text-purple-800' :
-                        user.role?.name.toLowerCase() === 'customer' ? 'bg-green-100 text-green-800' : 
+                      ${user.role?.toLowerCase() === 'admin' ? 'bg-red-100 text-red-800' : 
+                        user.role?.toLowerCase() === 'staff' ? 'bg-blue-100 text-blue-800' : 
+                        user.role?.toLowerCase() === 'assistant' ? 'bg-purple-100 text-purple-800' :
+                        user.role?.toLowerCase() === 'customer' ? 'bg-green-100 text-green-800' : 
                         'bg-gray-100 text-gray-800'}`}
                     >
-                      {user.role?.name || "No Role"}
+                      {user.role || "No Role"}
                     </span>
                   </td>
                   <td className="py-3 px-4">
-                    {user.supervisor ? (
-                      <div className="text-sm">
-                        <div className="font-medium text-gray-900">{user.supervisor.name}</div>
-                        <div className="text-gray-500">{user.supervisor.email}</div>
-                      </div>
-                    ) : (
-                      <span className="text-gray-400 text-sm">No supervisor</span>
-                    )}
+                    <span className="text-gray-400 text-sm">No supervisor</span>
                   </td>
                   <td className="py-3 px-4">
                     <div className="flex space-x-2">
@@ -463,40 +454,27 @@ export default function UsersPage() {
               <div className="mb-6">
                 <label className="block text-gray-700 mb-2">Role</label>
                 <select
-                  name="roleId"
-                  value={formData.roleId}
+                  name="role"
+                  value={formData.role}
                   onChange={handleInputChange}
                   className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 text-black"
                 >
-                  <option value={0}>Select a role</option>
-                  {roles.map(role => (
-                    <option key={role.id} value={role.id}>
-                      {role.name}
-                    </option>
-                  ))}
+                  <option value="customer">Customer</option>
+                  <option value="staff">Staff</option>
+                  <option value="assistant">Assistant</option>
+                  <option value="admin">Admin</option>
                 </select>
               </div>
               <div className="mb-6">
-                <label className="block text-gray-700 mb-2">Supervisor/Manager (Optional)</label>
-                <select
-                  name="supervisorId"
-                  value={formData.supervisorId}
+                <label className="block text-gray-700 mb-2">Phone</label>
+                <input
+                  type="tel"
+                  name="phone"
+                  value={formData.phone}
                   onChange={handleInputChange}
+                  placeholder="Phone number"
                   className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 text-black"
-                >
-                  <option value={0}>Select a supervisor</option>
-                  {users
-                    .filter(u => u.id !== currentUser?.id) // Don't allow selecting self as supervisor
-                    .filter(u => u.role?.name.toLowerCase() === 'admin' || u.role?.name.toLowerCase() === 'staff') // Only admins and staff can be supervisors
-                    .map(user => (
-                      <option key={user.id} value={user.id}>
-                        {user.name} ({user.role?.name}) - {user.email}
-                      </option>
-                    ))}
-                </select>
-                <p className="text-xs text-gray-500 mt-1">
-                  Only Admin and Staff users can be selected as supervisors
-                </p>
+                />
               </div>
               <div className="flex justify-end space-x-3">
                 <button

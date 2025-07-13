@@ -15,6 +15,7 @@ export interface User {
 interface AuthContextType {
   user: User | null;
   isLoading: boolean;
+  isLoggingOut: boolean;
   login: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
 }
@@ -24,6 +25,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [lastCheckTime, setLastCheckTime] = useState(0);
 
   useEffect(() => {
@@ -132,196 +134,62 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = async () => {
     try {
-      console.log('🔥🔥🔥 NUCLEAR LOGOUT PROCESS STARTED 🔥🔥🔥');
-      const timestamp = new Date().toISOString();
-      console.log(`🔥 [${timestamp}] NUCLEAR LOGOUT: Starting most aggressive cookie deletion...`);
+      setIsLoggingOut(true);
+      console.log('� Starting logout process...');
       
-      // Clear local state first to prevent any UI issues
+      // Clear local state immediately for responsive UI
       setUser(null);
-      console.log(`🔥 [${timestamp}] User state cleared`);
       
-      // NUCLEAR STEP 1: NUKE ALL COOKIES BEFORE API CALL
-      console.log(`🔥 [${timestamp}] INITIATING NUCLEAR COOKIE DELETION...`);
-      
-      if (typeof window !== 'undefined') {
-        // Get all cookies before deletion for debugging
-        const allCookiesBefore = document.cookie;
-        console.log(`🔥 [${timestamp}] All cookies before NUCLEAR deletion:`, allCookiesBefore);
-        
-        // NUCLEAR APPROACH: Use the nuclear function
-        nukeAllCookies();
-        
-        // ADDITIONAL BRUTE FORCE: Try to delete EVERY possible cookie combination
-        const possibleCookieNames = [
-          'pharmacy_auth', 'token', 'session', 'auth_token', 'user_session', 
-          'remember_token', 'csrf_token', 'user', 'user_id', 'userid', 
-          'user_token', 'access_token', 'refresh_token', 'jwt', 'jwt_token',
-          'bearer_token', 'api_token', 'login_token', 'auth', 'authentication',
-          'pharmacy_session', 'pharmacy_user', 'pharmacy_token', 'global_pharma_auth',
-          'globalpharma_auth', 'pharmacy_remember', 'user_preferences',
-          '__Secure-pharmacy_auth', '__Host-pharmacy_auth'
-        ];
-        
-        // Also try to extract any existing cookie names
-        const existingCookies = document.cookie.split(';').map(cookie => {
-          const eqPos = cookie.indexOf('=');
-          return eqPos > -1 ? cookie.substr(0, eqPos).trim() : cookie.trim();
-        }).filter(name => name.length > 0);
-        
-        const allCookieNames = [...new Set([...possibleCookieNames, ...existingCookies])];
-        console.log(`🔥 [${timestamp}] TARGETING ${allCookieNames.length} cookies for NUCLEAR deletion:`, allCookieNames);
-        
-        // NUCLEAR DELETE EACH COOKIE
-        allCookieNames.forEach((cookieName, index) => {
-          console.log(`🔥 [${timestamp}] NUCLEAR deletion ${index + 1}/${allCookieNames.length}: ${cookieName}`);
-          deleteCookie(cookieName);
-        });
-        
-        // ADDITIONAL NUCLEAR APPROACH: Raw document.cookie manipulation
-        const domain = window.location.hostname;
-        const nuclearDeletionAttempts = [];
-        
-        for (const cookieName of allCookieNames) {
-          // Every possible combination for maximum destruction
-          const deletionCombos = [
-            `${cookieName}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; max-age=0`,
-            `${cookieName}=; expires=Wed, 31 Dec 1969 23:59:59 GMT; path=/; max-age=-1`,
-            `${cookieName}=DELETED; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; max-age=0`,
-            `${cookieName}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; domain=${domain}; max-age=0`,
-            `${cookieName}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; domain=.${domain}; max-age=0`,
-            `${cookieName}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; secure; max-age=0`,
-            `${cookieName}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; httponly; max-age=0`,
-            `${cookieName}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; secure; httponly; max-age=0`,
-            `${cookieName}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; samesite=lax; max-age=0`,
-            `${cookieName}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; samesite=strict; max-age=0`,
-            `${cookieName}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; samesite=none; secure; max-age=0`
-          ];
-          
-          if (domain.includes('globalpharmatrading.co.uk')) {
-            deletionCombos.push(
-              `${cookieName}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; domain=globalpharmatrading.co.uk; max-age=0`,
-              `${cookieName}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; domain=.globalpharmatrading.co.uk; max-age=0`,
-              `${cookieName}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; domain=www.globalpharmatrading.co.uk; max-age=0`,
-              `${cookieName}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; domain=globalpharmatrading.co.uk; secure; max-age=0`,
-              `${cookieName}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; domain=.globalpharmatrading.co.uk; secure; max-age=0`
-            );
-          }
-          
-          nuclearDeletionAttempts.push(...deletionCombos);
-        }
-        
-        console.log(`🔥 [${timestamp}] Executing ${nuclearDeletionAttempts.length} NUCLEAR deletion attempts...`);
-        
-        // Execute all nuclear deletion attempts
-        nuclearDeletionAttempts.forEach((attempt, index) => {
-          try {
-            document.cookie = attempt;
-          } catch (e) {
-            // Continue with other attempts
-          }
-        });
-        
-        // Clear ALL storage
-        try {
-          // Clear localStorage
-          const localStorageKeys = Object.keys(localStorage);
-          localStorageKeys.forEach(key => {
-            try {
-              localStorage.removeItem(key);
-            } catch (e) {
-              // Continue
-            }
-          });
-          
-          // Clear sessionStorage
-          const sessionStorageKeys = Object.keys(sessionStorage);
-          sessionStorageKeys.forEach(key => {
-            try {
-              sessionStorage.removeItem(key);
-            } catch (e) {
-              // Continue
-            }
-          });
-          
-          console.log(`🔥 [${timestamp}] NUCLEAR storage clearing complete`);
-        } catch (e) {
-          console.log(`🔥 [${timestamp}] Storage nuclear cleanup failed:`, e);
-        }
-        
-        // Verify nuclear deletion
-        setTimeout(() => {
-          const allCookiesAfter = document.cookie;
-          console.log(`🔥 [${timestamp}] Cookies after NUCLEAR deletion:`, allCookiesAfter || 'NO COOKIES REMAINING');
-          const pharmaCookieRemaining = allCookiesAfter.includes('pharmacy_auth');
-          console.log(`🔥 [${timestamp}] pharmacy_auth survival status:`, pharmaCookieRemaining ? '💀 SURVIVED NUCLEAR ATTACK' : '✅ COMPLETELY DESTROYED');
-        }, 100);
-      }
-      
-      // NUCLEAR STEP 2: Call logout API to clear server-side httpOnly cookies
-      console.log(`🔥 [${timestamp}] Calling NUCLEAR logout API...`);
+      // Call logout API to clear server-side cookies
       const response = await fetch('/api/auth/logout', {
         method: 'POST',
-        credentials: 'include',
-        headers: {
-          'Cache-Control': 'no-cache'
-        }
+        credentials: 'include'
       });
       
       if (response.ok) {
-        const data = await response.json();
-        console.log(`🔥 [${timestamp}] NUCLEAR logout API response:`, data);
+        console.log('✅ Logout API successful');
       } else {
-        console.warn(`🔥 [${timestamp}] NUCLEAR logout API failed with status:`, response.status);
+        console.warn('⚠️ Logout API failed, continuing with client cleanup');
       }
       
-      // NUCLEAR STEP 3: Final cleanup and redirect
-      console.log(`🔥 [${timestamp}] Performing NUCLEAR final cleanup...`);
-      
-      // Additional delay to ensure all operations complete
-      await new Promise(resolve => setTimeout(resolve, 300));
-      
-      // Force redirect to login page with logout parameter and cache busting
-      const redirectUrl = `/auth/login?logout=true&t=${Date.now()}`;
-      console.log(`[${timestamp}] Redirecting to:`, redirectUrl);
-      window.location.replace(redirectUrl);
-      
-    } catch (error) {
-      console.error('=== LOGOUT PROCESS FAILED ===');
-      console.error('Logout process failed:', error);
-      
-      // EMERGENCY CLEANUP - even if API call fails, clear everything
-      setUser(null);
-      
+      // Simple client-side cleanup
       if (typeof window !== 'undefined') {
-        // Nuclear option - clear everything
+        // Clear the main auth cookie
+        document.cookie = 'pharmacy_auth=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT; Max-Age=0';
+        
+        // Clear relevant storage items
         try {
-          localStorage.clear();
-          sessionStorage.clear();
-          
-          // Brute force delete all cookies
-          const cookies = document.cookie.split(';');
-          cookies.forEach(cookie => {
-            const eqPos = cookie.indexOf('=');
-            const name = eqPos > -1 ? cookie.substr(0, eqPos).trim() : cookie.trim();
-            if (name) {
-              document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/;`;
-              document.cookie = `${name}=; max-age=0; path=/;`;
-            }
-          });
-          
-          console.log('Emergency cleanup completed');
+          localStorage.removeItem('user');
+          localStorage.removeItem('auth');
+          sessionStorage.removeItem('user');
+          sessionStorage.removeItem('auth');
         } catch (e) {
-          console.log('Emergency storage clear failed:', e);
+          // Continue if storage clearing fails
         }
       }
       
-      // Force redirect even if everything fails
-      window.location.replace(`/auth/login?logout=emergency&t=${Date.now()}`);
+      console.log('✅ Logout complete, redirecting...');
+      
+      // Quick redirect
+      window.location.replace('/auth/login?logout=true');
+      
+    } catch (error) {
+      console.error('Logout error:', error);
+      
+      // Emergency cleanup
+      setUser(null);
+      
+      if (typeof window !== 'undefined') {
+        document.cookie = 'pharmacy_auth=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT; Max-Age=0';
+        window.location.replace('/auth/login?logout=emergency');
+      }
+    } finally {
+      setIsLoggingOut(false);
     }
   };
 
   return (
-    <AuthContext.Provider value={{ user, isLoading, login, logout }}>
+    <AuthContext.Provider value={{ user, isLoading, isLoggingOut, login, logout }}>
       {children}
     </AuthContext.Provider>
   );

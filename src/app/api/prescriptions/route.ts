@@ -14,6 +14,17 @@ export async function GET(req: NextRequest) {
 
     const prescriptions = await prisma.prescription.findMany({
       where: { userId: parseInt(user.id) },
+      include: {
+        order: {
+          select: {
+            id: true,
+            orderNumber: true,
+            status: true,
+            estimatedDelivery: true,
+            trackingNumber: true
+          }
+        }
+      },
       orderBy: { createdAt: 'desc' }
     });
 
@@ -155,7 +166,7 @@ export async function POST(req: NextRequest) {
         prescriptionText: medicineDetails,
         amount: 0, // No price until staff/admin sets it
         deliveryAddress,
-        status: 'unapproved', // Always start as unapproved
+        status: 'pending', // Always start as pending for approval
         paymentStatus: 'unpaid',
         // Store additional data in existing fields for now
         // In future schema, these would be proper fields:

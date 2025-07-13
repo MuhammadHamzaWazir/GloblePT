@@ -14,11 +14,10 @@ export default function RegisterPage() {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [address, setAddress] = useState('');
+  const [phone, setPhone] = useState('');
   const [dateOfBirth, setDateOfBirth] = useState('');
   
   // Identity Verification
-  const [nationalInsuranceNumber, setNIN] = useState('');
-  const [nhsNumber, setNHS] = useState('');
   const [photoId, setPhotoId] = useState<File | null>(null);
   const [addressProof, setAddressProof] = useState<File | null>(null);
   
@@ -49,15 +48,25 @@ export default function RegisterPage() {
     return age >= 16;
   };
 
+  const validatePhoneNumber = (phone: string) => {
+    // UK mobile number validation
+    const ukMobileRegex = /^(\+44\s?7\d{3}|\(?07\d{3}\)?)\s?\d{3}\s?\d{3}$/;
+    return ukMobileRegex.test(phone.replace(/\s/g, ''));
+  };
+
   const handleStepValidation = (step: number) => {
     switch (step) {
       case 1:
-        if (!name || !email || !password || !confirmPassword || !address || !dateOfBirth) {
+        if (!name || !email || !password || !confirmPassword || !address || !phone || !dateOfBirth) {
           setError('Please fill in all required fields.');
           return false;
         }
         if (password !== confirmPassword) {
           setError('Passwords do not match.');
+          return false;
+        }
+        if (!validatePhoneNumber(phone)) {
+          setError('Please enter a valid UK mobile number (e.g., 07xxx xxx xxx or +44 7xxx xxx xxx).');
           return false;
         }
         if (!validateAge()) {
@@ -66,10 +75,15 @@ export default function RegisterPage() {
         }
         break;
       case 2:
-        // Identity verification is optional but recommended
+        // Identity verification is required
+        if (!photoId || !addressProof) {
+          setError('Both Photo ID and Address Proof are required for verification.');
+          return false;
+        }
         break;
       case 3:
-        // Medical history is optional
+        // Medical history is optional but we should validate if provided
+        // All validation passed for step 3
         break;
     }
     setError('');
@@ -103,15 +117,14 @@ export default function RegisterPage() {
       formData.append('email', email);
       formData.append('password', password);
       formData.append('address', address);
+      formData.append('phone', phone);
       formData.append('dateOfBirth', dateOfBirth);
       
-      // Identity verification
-      if (nationalInsuranceNumber) formData.append('nationalInsuranceNumber', nationalInsuranceNumber);
-      if (nhsNumber) formData.append('nhsNumber', nhsNumber);
+      // Identity verification files (required)
       if (photoId) formData.append('photoId', photoId);
       if (addressProof) formData.append('addressProof', addressProof);
       
-      // Medical history
+      // Medical history (removed since simplified registration)
       if (currentMedications) formData.append('currentMedications', currentMedications);
       if (allergies) formData.append('allergies', allergies);
       if (medicalConditions) formData.append('medicalConditions', medicalConditions);
@@ -129,11 +142,9 @@ export default function RegisterPage() {
         throw new Error(data.message || 'Registration failed');
       }
       
-      // Auto-login after successful registration
-      await login(email, password);
-      
-      // New users are always customers by default, redirect to customer dashboard
-      router.push('/dashboard');
+      // Don't auto-login since user needs admin approval first
+      // Show success message and redirect to login with info message
+      router.push('/auth/login?registered=true&message=' + encodeURIComponent(data.message));
       
     } catch (error: any) {
       setError(error.message || 'Registration failed. Please try again.');
@@ -190,6 +201,22 @@ export default function RegisterPage() {
           <p className="text-xs text-green-600 mt-1">Must be 16+ for pharmacy services</p>
         </div>
         
+        <div>
+          <label className="block text-sm font-medium text-green-800 mb-1">Mobile Number *</label>
+          <input 
+            name="phone" 
+            value={phone} 
+            onChange={e => setPhone(e.target.value)} 
+            type="tel" 
+            placeholder="+44 7xxx xxx xxx" 
+            className="w-full border-2 border-green-300 focus:border-green-600 outline-none py-3 px-4 text-lg rounded transition-all text-black" 
+            required 
+          />
+          <p className="text-xs text-green-600 mt-1">UK mobile number format</p>
+        </div>
+      </div>
+      
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="relative">
           <input 
             name="password" 
@@ -197,28 +224,28 @@ export default function RegisterPage() {
             onChange={e => setPassword(e.target.value)} 
             type={showPassword ? "text" : "password"}
             placeholder="Password *" 
-            className="w-full border-2 border-green-300 focus:border-green-600 outline-none py-3 px-4 text-lg rounded transition-all text-black" 
+            className="w-full border-2 border-green-300 focus:border-green-600 outline-none py-3 px-4 text-lg rounded transition-all text-black pr-12" 
             required 
           />
           <button 
             type="button"
             onClick={() => setShowPassword(!showPassword)}
-            className="absolute right-3 top-1/2 transform -translate-y-1/2 text-green-600"
+            className="absolute right-3 top-1/2 transform -translate-y-1/2 text-green-600 hover:text-green-800"
           >
             {showPassword ? '🙈' : '👁️'}
           </button>
         </div>
+        
+        <input 
+          name="confirmPassword" 
+          value={confirmPassword} 
+          onChange={e => setConfirmPassword(e.target.value)} 
+          type="password" 
+          placeholder="Confirm Password *" 
+          className="w-full border-2 border-green-300 focus:border-green-600 outline-none py-3 px-4 text-lg rounded transition-all text-black" 
+          required 
+        />
       </div>
-      
-      <input 
-        name="confirmPassword" 
-        value={confirmPassword} 
-        onChange={e => setConfirmPassword(e.target.value)} 
-        type="password" 
-        placeholder="Confirm Password *" 
-        className="w-full border-2 border-green-300 focus:border-green-600 outline-none py-3 px-4 text-lg rounded transition-all text-black" 
-        required 
-      />
     </div>
   );
 
@@ -226,33 +253,13 @@ export default function RegisterPage() {
     <div className="space-y-4">
       <h2 className="text-xl font-semibold text-green-800 mb-4">🔒 Identity Verification</h2>
       <p className="text-sm text-green-700 mb-4">
-        To comply with UK pharmacy regulations, we need to verify your identity. This helps ensure safe and legal dispensing of medicines.
+        To comply with UK pharmacy regulations, we need to verify your identity. Please upload the required documents for verification. Your account will be reviewed by our team before activation.
       </p>
-      
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <input 
-          name="nationalInsuranceNumber" 
-          value={nationalInsuranceNumber} 
-          onChange={e => setNIN(e.target.value)} 
-          type="text" 
-          placeholder="National Insurance Number (optional)" 
-          className="w-full border-2 border-green-300 focus:border-green-600 outline-none py-3 px-4 text-lg rounded transition-all text-black" 
-        />
-        
-        <input 
-          name="nhsNumber" 
-          value={nhsNumber} 
-          onChange={e => setNHS(e.target.value)} 
-          type="text" 
-          placeholder="NHS Number (optional)" 
-          className="w-full border-2 border-green-300 focus:border-green-600 outline-none py-3 px-4 text-lg rounded transition-all text-black" 
-        />
-      </div>
       
       <div className="space-y-4">
         <div>
           <label className="block text-sm font-medium text-green-800 mb-2">
-            📷 Photo ID (Passport, Driving License, etc.)
+            📷 Photo ID (Required) *
           </label>
           <input 
             name="photoId" 
@@ -260,8 +267,9 @@ export default function RegisterPage() {
             accept="image/*,.pdf"
             onChange={e => setPhotoId(e.target.files?.[0] || null)} 
             className="w-full border-2 border-green-300 focus:border-green-600 outline-none py-3 px-4 text-lg rounded transition-all text-black file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:bg-green-100 file:text-green-800"
+            required
           />
-          <p className="text-xs text-green-600 mt-1">Government-issued ID required for verification</p>
+          <p className="text-xs text-green-600 mt-1">Government-issued ID (Passport, Driving License, etc.) required for verification</p>
         </div>
         
         <div>

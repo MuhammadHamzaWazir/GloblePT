@@ -84,8 +84,8 @@ export async function POST(
           },
         ],
         mode: 'payment',
-        success_url: `${process.env.NEXT_PUBLIC_BASE_URL || 'https://globalpharmatrading.co.uk'}/dashboard?payment=success&prescription=${prescriptionId}`,
-        cancel_url: `${process.env.NEXT_PUBLIC_BASE_URL || 'https://globalpharmatrading.co.uk'}/dashboard?payment=cancelled`,
+        success_url: `${process.env.NEXT_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/dashboard?payment=success&prescription=${prescriptionId}&payment_intent={CHECKOUT_SESSION_ID}`,
+        cancel_url: `${process.env.NEXT_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/dashboard?payment=cancelled`,
         metadata: {
           prescriptionId: prescriptionId.toString(),
           userId: user.id,

@@ -81,7 +81,7 @@ export default function AdminPrescriptionsPage() {
                 </td>
                 <td>
                   <select value={rx.status} onChange={e => handleUpdateStatus(rx.id, e.target.value)} className="input input-bordered">
-                    <option value="pending">Pending</option>
+                    <option value="pending">Unapproved</option>
                     <option value="processing">Processing</option>
                     <option value="delivered">Delivered</option>
                   </select>

@@ -8,72 +8,95 @@ datasource db {
 }
 
 model User {
-  id       Int      @id @default(autoincrement())
+  id       Int     @id @default(autoincrement())
   name     String
-  email    String   @unique
+  email    String  @unique
   password String
   address  String
   phone    String?
-  
-  // Identity Verification Fields
   dateOfBirth DateTime?
-  nationalInsuranceNumber String?
-  nhsNumber String?
-  photoIdUrl String?  // Government-issued ID upload
-  addressProofUrl String?  // Utility bill/delivery record
-  identityVerified Boolean @default(false)
+
+  // Identity Verification Fields
+  photoIdUrl      String? // URL for the uploaded photo ID
+  addressProofUrl String? // URL for the uploaded address proof
+
+  identityVerified   Boolean   @default(false)
   identityVerifiedAt DateTime?
   identityVerifiedBy Int?
-  
+
   // Age Verification
-  ageVerified Boolean @default(false)
+  ageVerified           Boolean @default(false)
   ageVerificationMethod String? // "photo_id", "electronic", "in_person"
-  
+
   // Two-Factor Authentication
-  twoFactorSecret String?
-  twoFactorEnabled Boolean @default(false)
+  twoFactorSecret      String?
+  twoFactorEnabled     Boolean @default(false)
   twoFactorBackupCodes String? // JSON array of backup codes
-  
+
   // Email Verification for Login
-  emailVerificationCode String?
+  emailVerificationCode       String?
   emailVerificationCodeExpiry DateTime?
-  emailVerificationAttempts Int @default(0)
-  lastEmailVerificationSent DateTime?
-  
+  emailVerificationAttempts   Int       @default(0)
+  lastEmailVerificationSent   DateTime?
+
   // Medical History & Capacity Assessment
-  medicalProfile MedicalProfile?
-  capacityAssessed Boolean @default(false)
+  medicalProfile     MedicalProfile?
+  capacityAssessed   Boolean         @default(false)
   capacityAssessedAt DateTime?
   capacityAssessedBy Int?
-  
+
   // Account Status
   accountStatus String @default("pending") // pending, verified, suspended, blocked
-  verificationNotes String? @db.Text
-  
-  // Legacy fields
-  file1Url String?
-  file2Url String?
-  
-  roleId   Int?
-  role     Role?    @relation(fields: [roleId], references: [id])
-  supervisorId Int?
-  supervisor   User? @relation("UserSupervisor", fields: [supervisorId], references: [id])
-  subordinates User[] @relation("UserSupervisor")
-  complaints Complaint[]
-  assignedComplaints Complaint[] @relation("ComplaintAssigner")
-  resolvedComplaints Complaint[] @relation("ComplaintResolver")
-  prescriptions Prescription[]
+
+  // GP Details for prescription verification
+  gpName       String?
+  gpAddress    String?
+  gpPhone      String?
+  gpEmail      String?
+  practiceName String?
+  nhsNumber    String?
+
+  role UserRole @default(customer)
+
+  // Legacy fields - REMOVED for clarity
+  // file1Url String?
+  // file2Url String?
+
+  // Relational role - REMOVED to prefer enum-based role
+  // roleId   Int?
+  // role     Role?    @relation(fields: [roleId], references: [id])
+
+  supervisorId          Int?
+  supervisor            User?          @relation("UserSupervisor", fields: [supervisorId], references: [id])
+  subordinates          User[]         @relation("UserSupervisor")
+  complaints            Complaint[]
+  assignedComplaints    Complaint[]    @relation("ComplaintAssignee")
+  assignedAsComplaintBy Complaint[]    @relation("ComplaintAssigner")
+  resolvedComplaints    Complaint[]    @relation("ComplaintResolver")
+  prescriptions         Prescription[]
   approvedPrescriptions Prescription[] @relation("PrescriptionApprover")
-  orders Order[] @relation("UserOrders")
-  
+  orders                Order[]        @relation("UserOrders")
+
   // Identity verification relationships
-  identityVerifier User? @relation("IdentityVerifier", fields: [identityVerifiedBy], references: [id])
+  identityVerifier      User?  @relation("IdentityVerifier", fields: [identityVerifiedBy], references: [id])
   identityVerifications User[] @relation("IdentityVerifier")
-  capacityVerifier User? @relation("CapacityVerifier", fields: [capacityAssessedBy], references: [id])
+  capacityVerifier      User?  @relation("CapacityVerifier", fields: [capacityAssessedBy], references: [id])
   capacityVerifications User[] @relation("CapacityVerifier")
-  
+
+  // Messaging relationships
+  sentMessages            Message[]                   @relation("MessageSender")
+  conversationParticipant ConversationParticipant[]
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+enum UserRole {
+  customer
+  staff
+  admin
+  assistant
+  supervisor
 }
 
 model Permission {
@@ -85,7 +108,6 @@ model Permission {
 model Role {
   id          Int          @id @default(autoincrement())
   name        String       @unique
-  users       User[]
   permissions Permission[] @relation("RolePermissions")
 }
 
@@ -99,150 +121,157 @@ model Customer {
 }
 
 model Complaint {
-  id            Int      @id @default(autoincrement())
-  userId        Int
-  user          User     @relation(fields: [userId], references: [id])
-  
+  id     Int  @id @default(autoincrement())
+  userId Int
+  user   User @relation(fields: [userId], references: [id])
+
   // Complaint details
-  title         String   @default("General Complaint")
-  description   String   @db.Text
-  category      String   @default("service") // service, staff, product, delivery, billing
-  priority      String   @default("medium")  // low, medium, high, urgent
-  fileUrl       String?
-  
+  title           String  @default("General Complaint")
+  description     String  @db.Text
+  category        String  @default("service") // service, staff, product, delivery, billing
+  priority        String  @default("medium") // low, medium, high, urgent
+  fileUrl         String?
+  affectedService String? // Which service is affected
+  orderId         Int?    // Related order ID if applicable
+
   // Assignment and status
-  status        String   @default("received") // received, investigating, resolved, closed
-  assignedToId  Int?
-  assignedTo    Staff?   @relation(fields: [assignedToId], references: [id])
-  assignedAt    DateTime?
-  
+  status       String    @default("received") // received, investigating, resolved, closed
+  assignedToId Int?
+  assignedTo   User?    @relation("ComplaintAssignee", fields: [assignedToId], references: [id])
+  assignedAt   DateTime?
+
   // Admin actions
-  assignedById  Int?
-  assignedBy    User?    @relation("ComplaintAssigner", fields: [assignedById], references: [id])
-  
+  assignedById Int?
+  assignedBy   User? @relation("ComplaintAssigner", fields: [assignedById], references: [id])
+
   // Resolution
-  resolution    String?  @db.Text
-  resolvedAt    DateTime?
-  resolvedById  Int?
-  resolvedBy    User?    @relation("ComplaintResolver", fields: [resolvedById], references: [id])
-  
+  resolution   String?   @db.Text
+  resolvedAt   DateTime?
+  resolvedById Int?
+  resolvedBy   User?     @relation("ComplaintResolver", fields: [resolvedById], references: [id])
+
   // Timestamps
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model Staff {
-  id        Int      @id @default(autoincrement())
-  name      String
-  email     String   @unique
-  address   String
-  phone     String?
-  createdAt DateTime @default(now())
+  id            Int            @id @default(autoincrement())
+  name          String
+  email         String         @unique
+  address       String
+  phone         String?
+  createdAt     DateTime       @default(now())
   prescriptions Prescription[]
-  complaints Complaint[]
 }
 
 model Prescription {
-  id            Int      @id @default(autoincrement())
-  userId        Int
-  user          User     @relation(fields: [userId], references: [id])
-  staffId       Int?
-  staff         Staff?   @relation(fields: [staffId], references: [id])
-  
+  id      Int    @id @default(autoincrement())
+  userId  Int
+  user    User   @relation(fields: [userId], references: [id])
+  staffId Int?
+  staff   Staff? @relation(fields: [staffId], references: [id])
+
   // Prescription details
-  medicine      String
-  dosage        String?
-  instructions  String?
-  quantity      Int      @default(1)
+  medicine         String? // Legacy field - kept for backward compatibility
+  medicines        String? @db.Text // JSON array of medicines [{name, dosage, quantity, instructions}]
+  dosage           String? // Legacy field
+  instructions     String?
+  quantity         Int     @default(1) // Legacy field - total quantity
   prescriptionText String? @db.Text // Full prescription details
-  
+
+  // File uploads
+  fileUrls         String? @db.Text // JSON array of uploaded file URLs
+  filename         String? // Primary filename for display
+
   // Medicine Classification (UK Pharmacy Law)
-  medicineType  String   @default("P") // "POM" (Prescription Only Medicine), "P" (Pharmacy Medicine), "GSL" (General Sale List)
+  medicineType         String  @default("P") // "POM" (Prescription Only Medicine), "P" (Pharmacy Medicine), "GSL" (General Sale List)
   requiresPrescription Boolean @default(false)
-  ageRestricted Boolean @default(false)
-  minimumAge    Int      @default(16) // Minimum age for purchase
-  
+  ageRestricted        Boolean @default(false)
+  minimumAge           Int     @default(16) // Minimum age for purchase
+
   // Capacity Assessment for this prescription
-  capacityConfirmed Boolean @default(false)
-  riskAssessmentComplete Boolean @default(false)
+  capacityConfirmed          Boolean @default(false)
+  riskAssessmentComplete     Boolean @default(false)
   pharmacistApprovalRequired Boolean @default(true)
-  
+
   // Prescription validation (for POM)
-  prescribedBy  String? // Name of prescribing professional
-  prescriberGMC String? // GMC number or professional registration
+  prescribedBy          String? // Name of prescribing professional
+  prescriberGMC         String? // GMC number or professional registration
   prescriptionValidated Boolean @default(false)
-  
+
   // Pricing and billing
-  amount        Float
+  amount          Float   @default(0) // Default 0, set by admin after review
   deliveryAddress String
-  
+
   // Status tracking
-  status        String   @default("pending") // pending, approved, rejected, ready_to_ship, dispatched, delivered, paid
-  paymentStatus String   @default("unpaid")  // unpaid, paid, refunded
-  
+  status        String @default("pending") // pending, approved, rejected, ready_to_ship, dispatched, delivered, paid
+  paymentStatus String @default("unpaid") // unpaid, paid, refunded
+
   // Payment tracking
   stripePaymentIntentId String?
-  stripeChargeId       String?
-  paidAt               DateTime?
-  
-  // Order relationship
-  order         Order?   // One-to-one relationship with Order
-  
-  // Admin actions
-  approvedBy    Int?
-  approvedByUser User? @relation("PrescriptionApprover", fields: [approvedBy], references: [id])
-  approvedAt    DateTime?
-  rejectedReason String?
-  
-  // Tracking information
-  trackingNumber String?
-  dispatchedAt   DateTime?
-  deliveredAt    DateTime?
-  
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-}
+  stripeChargeId        String?
+  paidAt                DateTime?
 
-model Order {
-  id            Int      @id @default(autoincrement())
-  orderNumber   String   @unique // Generated order number for tracking
-  
-  // Customer information
-  userId        Int
-  user          User     @relation("UserOrders", fields: [userId], references: [id])
-  
-  // Prescription relationship
-  prescriptionId Int     @unique
-  prescription   Prescription @relation(fields: [prescriptionId], references: [id])
-  
-  // Order details
-  totalAmount   Float
-  currency      String   @default("gbp")
-  
-  // Delivery information
-  deliveryAddress String
-  deliveryMethod  String   @default("standard") // standard, express, collect
-  estimatedDelivery DateTime?
-  
-  // Payment information
-  stripePaymentIntentId String?
-  stripeChargeId       String?
-  paidAt               DateTime?
-  
-  // Order status tracking
-  status        String   @default("confirmed") // confirmed, processing, dispatched, delivered, cancelled
-  
+  // Order relationship
+  order Order? // One-to-one relationship with Order
+
+  // Admin actions
+  approvedBy     Int?
+  approvedByUser User?     @relation("PrescriptionApprover", fields: [approvedBy], references: [id])
+  approvedAt     DateTime?
+  rejectedReason String?
+
   // Tracking information
   trackingNumber String?
   courierName    String?
   dispatchedAt   DateTime?
   deliveredAt    DateTime?
-  
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Order {
+  id          Int    @id @default(autoincrement())
+  orderNumber String @unique // Generated order number for tracking
+
+  // Customer information
+  userId Int
+  user   User @relation("UserOrders", fields: [userId], references: [id])
+
+  // Prescription relationship
+  prescriptionId Int          @unique
+  prescription   Prescription @relation(fields: [prescriptionId], references: [id])
+
+  // Order details
+  totalAmount Float
+  currency    String @default("gbp")
+
+  // Delivery information
+  deliveryAddress   String
+  deliveryMethod    String    @default("standard") // standard, express, collect
+  estimatedDelivery DateTime?
+
+  // Payment information
+  stripePaymentIntentId String?
+  stripeChargeId        String?
+  paidAt                DateTime?
+
+  // Order status tracking
+  status String @default("confirmed") // confirmed, processing, dispatched, delivered, cancelled
+
+  // Tracking information
+  trackingNumber String?
+  courierName    String?
+  dispatchedAt   DateTime?
+  deliveredAt    DateTime?
+
   // Order notes
-  notes         String?  @db.Text
-  
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  notes String? @db.Text
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model Contact {
@@ -255,36 +284,104 @@ model Contact {
 }
 
 model MedicalProfile {
-  id       Int      @id @default(autoincrement())
-  userId   Int      @unique
-  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
+  id     Int  @id @default(autoincrement())
+  userId Int  @unique
+  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   // Medical History
-  currentMedications String? @db.Text  // JSON array of current medications
-  allergies String? @db.Text          // JSON array of allergies
-  medicalConditions String? @db.Text   // JSON array of medical conditions
-  
+  currentMedications String? @db.Text // JSON array of current medications
+  allergies          String? @db.Text // JSON array of allergies
+  medicalConditions  String? @db.Text // JSON array of medical conditions
+
   // Pregnancy/Breastfeeding Status
-  isPregnant Boolean @default(false)
-  isBreastfeeding Boolean @default(false)
+  isPregnant       Boolean   @default(false)
+  isBreastfeeding  Boolean   @default(false)
   pregnancyDueDate DateTime?
-  
+
   // Capacity Assessment Responses
-  understandsRisks Boolean @default(false)
+  understandsRisks      Boolean @default(false)
   canFollowInstructions Boolean @default(false)
-  hasDecisionCapacity Boolean @default(false)
-  
+  hasDecisionCapacity   Boolean @default(false)
+
   // Assessment by Pharmacist
-  assessedByPharmacist Boolean @default(false)
-  pharmacistNotes String? @db.Text
-  assessedAt DateTime?
-  assessedBy Int?
-  
+  assessedByPharmacist Boolean   @default(false)
+  pharmacistNotes      String?   @db.Text
+  assessedAt           DateTime?
+  assessedBy           Int?
+
   // Emergency Contact
-  emergencyContactName String?
-  emergencyContactPhone String?
+  emergencyContactName     String?
+  emergencyContactPhone    String?
   emergencyContactRelation String?
-  
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+// Messaging System
+model Conversation {
+  id           Int       @id @default(autoincrement())
+  // Instead of array, we'll use a separate model for participants
+  participants ConversationParticipant[]
+  lastMessage  String?   @db.Text
+  lastMessageAt DateTime @default(now())
+  
+  // For admin inbox management
+  isArchived   Boolean   @default(false)
+  priority     String    @default("normal") // "low", "normal", "high", "urgent"
+  subject      String?   // Optional subject for the conversation
+  
+  messages     Message[]
+  
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  
+  @@index([lastMessageAt])
+}
+
+model ConversationParticipant {
+  id             Int          @id @default(autoincrement())
+  conversationId Int
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  userId         Int
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Participant-specific settings
+  isAdmin        Boolean      @default(false)
+  joinedAt       DateTime     @default(now())
+  lastReadAt     DateTime?
+  
+  @@unique([conversationId, userId])
+  @@index([userId])
+}
+
+model Message {
+  id             Int          @id @default(autoincrement())
+  conversationId Int
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  
+  senderId       Int
+  sender         User         @relation("MessageSender", fields: [senderId], references: [id])
+  
+  content        String       @db.Text
+  messageType    String       @default("text") // "text", "file", "image", "system"
+  
+  // File attachments (if messageType is "file" or "image")
+  fileUrl        String?
+  fileName       String?
+  fileSize       Int?
+  
+  // Message status
+  isRead         Boolean      @default(false)
+  readAt         DateTime?
+  
+  // For system messages
+  isSystemMessage Boolean     @default(false)
+  
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  
+  @@index([conversationId])
+  @@index([senderId])
+  @@index([createdAt])
 }

@@ -7,16 +7,22 @@ const prisma = new PrismaClient();
 // PUT - Update complaint (assign staff, change status, add resolution)
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const complaintId = parseInt(params.id);
+    console.log('🔍 Admin complaint update API - PUT request received');
+    const { id } = await params;
+    const complaintId = parseInt(id);
+    console.log('🔍 Complaint ID:', complaintId);
 
     // Get auth token from cookie
     const cookieStore = request.cookies;
     const token = cookieStore.get('pharmacy_auth')?.value;
 
+    console.log('🔍 Token found:', token ? 'Yes' : 'No');
+
     if (!token) {
+      console.log('❌ No authentication token found');
       return NextResponse.json({ 
         success: false, 
         message: 'Authentication required' 
@@ -25,12 +31,16 @@ export async function PUT(
 
     // Verify JWT token and check role
     const decoded = jwt.verify(token, process.env.JWT_SECRET!) as any;
+    console.log('🔍 Decoded token:', { id: decoded.id, email: decoded.email, role: decoded.role });
+    
     const user = await prisma.user.findUnique({
-      where: { id: decoded.userId },
-      include: { role: true }
+      where: { id: parseInt(decoded.id || decoded.userId) }
     });
 
-    if (!user || user.role?.name !== 'admin') {
+    console.log('🔍 User found:', user ? `${user.name} (${user.role})` : 'No user found');
+
+    if (!user || user.role !== 'admin') {
+      console.log('❌ Admin access required');
       return NextResponse.json({ 
         success: false, 
         message: 'Admin access required' 
@@ -38,6 +48,7 @@ export async function PUT(
     }
 
     const body = await request.json();
+    console.log('🔍 Request body:', body);
     const { status, assignedToId, resolution, priority } = body;
 
     // Validate complaint exists
@@ -96,12 +107,22 @@ export async function PUT(
         updateData.assignedAt = null;
         updateData.assignedById = null;
       } else {
-        // Validate staff exists
-        const staff = await prisma.staff.findUnique({
-          where: { id: assignedToId }
+        console.log('🔍 Assigning complaint to staff ID:', assignedToId);
+        // Validate staff exists (staff or assistant user)
+        const staff = await prisma.user.findFirst({
+          where: { 
+            id: assignedToId,
+            OR: [
+              { role: 'staff' },
+              { role: 'assistant' }
+            ]
+          }
         });
 
+        console.log('🔍 Staff member found:', staff ? `${staff.name} (${staff.role})` : 'Not found');
+
         if (!staff) {
+          console.log('❌ Staff member not found for ID:', assignedToId);
           return NextResponse.json({ 
             success: false, 
             message: 'Staff member not found' 
@@ -112,6 +133,8 @@ export async function PUT(
         updateData.assignedAt = new Date();
         updateData.assignedById = user.id;
         
+        console.log('🔍 Assignment data set:', { assignedToId, assignedById: user.id });
+        
         // Auto-change status to investigating if assigning
         if (!status) {
           updateData.status = 'investigating';
@@ -119,45 +142,60 @@ export async function PUT(
       }
     }
 
-    // Update complaint
-    const updatedComplaint = await prisma.complaint.update({
-      where: { id: complaintId },
-      data: updateData,
-      include: {
-        user: {
-          select: {
-            id: true,
-            name: true,
-            email: true
-          }
-        },
-        assignedTo: {
-          select: {
-            id: true,
-            name: true,
-            email: true
-          }
-        },
-        assignedBy: {
-          select: {
-            name: true,
-            email: true
-          }
-        },
-        resolvedBy: {
-          select: {
-            name: true,
-            email: true
+    console.log('🔍 Update data:', updateData);
+
+    try {
+      // Update complaint
+      const updatedComplaint = await prisma.complaint.update({
+        where: { id: complaintId },
+        data: updateData,
+        include: {
+          user: {
+            select: {
+              id: true,
+              name: true,
+              email: true
+            }
+          },
+          assignedTo: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              role: true
+            }
+          },
+          assignedBy: {
+            select: {
+              id: true,
+              name: true,
+              email: true
+            }
+          },
+          resolvedBy: {
+            select: {
+              id: true,
+              name: true,
+              email: true
+            }
           }
         }
-      }
-    });
+      });
 
-    return NextResponse.json({
-      success: true,
-      message: 'Complaint updated successfully',
-      data: { complaint: updatedComplaint }
-    });
+      console.log('✅ Complaint updated successfully');
+
+      return NextResponse.json({
+        success: true,
+        message: 'Complaint updated successfully',
+        data: { complaint: updatedComplaint }
+      });
+    } catch (updateError: any) {
+      console.error('❌ Prisma update error:', updateError);
+      return NextResponse.json({ 
+        success: false, 
+        message: `Update failed: ${updateError.message}` 
+      }, { status: 500 });
+    }
 
   } catch (error) {
     console.error('Error updating complaint:', error);
@@ -171,10 +209,11 @@ export async function PUT(
 // GET - Get single complaint details
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const complaintId = parseInt(params.id);
+    const { id } = await params;
+    const complaintId = parseInt(id);
 
     // Get auth token from cookie
     const cookieStore = request.cookies;
@@ -190,11 +229,10 @@ export async function GET(
     // Verify JWT token
     const decoded = jwt.verify(token, process.env.JWT_SECRET!) as any;
     const user = await prisma.user.findUnique({
-      where: { id: decoded.userId },
-      include: { role: true }
+      where: { id: parseInt(decoded.id || decoded.userId) }
     });
 
-    if (!user || !['admin', 'staff'].includes(user.role?.name || '')) {
+    if (!user || !['admin', 'staff', 'assistant'].includes(user.role || '')) {
       return NextResponse.json({ 
         success: false, 
         message: 'Access denied' 

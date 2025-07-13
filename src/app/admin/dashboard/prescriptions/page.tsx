@@ -16,6 +16,7 @@ interface Prescription {
   status: string;
   paymentStatus: string;
   trackingNumber?: string;
+  courierName?: string;
   createdAt: string;
   user: {
     id: number;
@@ -48,6 +49,7 @@ export default function PrescriptionsPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
   const [trackingNumber, setTrackingNumber] = useState('');
+  const [courierName, setCourierName] = useState('');
   const [rejectionReason, setRejectionReason] = useState('');
   const [isPriceModalOpen, setIsPriceModalOpen] = useState(false);
   const [newPrice, setNewPrice] = useState('');
@@ -106,6 +108,9 @@ export default function PrescriptionsPage() {
       
       if (newStatus === 'dispatched' && trackingNumber) {
         updateData.trackingNumber = trackingNumber;
+        if (courierName) {
+          updateData.courierName = courierName;
+        }
       }
       
       if (newStatus === 'rejected' && rejectionReason) {
@@ -129,6 +134,7 @@ export default function PrescriptionsPage() {
         setIsModalOpen(false);
         setSelectedPrescription(null);
         setTrackingNumber('');
+        setCourierName('');
         setRejectionReason('');
       } else {
         setError(data.message || 'Failed to update prescription');
@@ -263,7 +269,7 @@ export default function PrescriptionsPage() {
               className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-black"
             >
               <option value="">All Status</option>
-              <option value="pending">Pending</option>
+              <option value="pending">Unapproved</option>
               <option value="approved">Approved</option>
               <option value="rejected">Rejected</option>
               <option value="payment_pending">Payment Pending</option>
@@ -482,6 +488,13 @@ export default function PrescriptionsPage() {
                   </div>
                 )}
 
+                {selectedPrescription.courierName && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Courier Service</label>
+                    <p className="text-sm text-gray-900">{selectedPrescription.courierName}</p>
+                  </div>
+                )}
+
                 {/* Status Update Section */}
                 <div className="border-t pt-4">
                   <h4 className="text-md font-medium text-gray-900 mb-3">Update Status</h4>
@@ -536,6 +549,13 @@ export default function PrescriptionsPage() {
                       <div className="space-y-2">
                         <input
                           type="text"
+                          placeholder="Enter courier service name"
+                          value={courierName}
+                          onChange={(e) => setCourierName(e.target.value)}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-black"
+                        />
+                        <input
+                          type="text"
                           placeholder="Enter tracking number"
                           value={trackingNumber}
                           onChange={(e) => setTrackingNumber(e.target.value)}
@@ -570,6 +590,7 @@ export default function PrescriptionsPage() {
                     setIsModalOpen(false);
                     setSelectedPrescription(null);
                     setTrackingNumber('');
+                    setCourierName('');
                     setRejectionReason('');
                   }}
                   className="bg-gray-500 text-white px-4 py-2 rounded-md hover:bg-gray-600"

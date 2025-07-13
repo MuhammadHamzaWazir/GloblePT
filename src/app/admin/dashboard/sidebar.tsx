@@ -10,15 +10,19 @@ import {
   FaPrescriptionBottleAlt,
   FaUser,
   FaIdCard,
-  FaSignOutAlt
+  FaSignOutAlt,
+  FaUserClock,
+  FaInbox
 } from "react-icons/fa";
 import { useAuth } from '@/lib/auth-context';
 
 // Define the navigation links with icons
 const navItems = [
   { href: "/admin/dashboard", label: "Dashboard", icon: FaHome },
+  { href: "/admin/dashboard/inbox", label: "Inbox", icon: FaInbox },
   { href: "/admin/dashboard/profile", label: "My Profile", icon: FaUser },
   { href: "/admin/dashboard/users", label: "Users", icon: FaUsers },
+  { href: "/admin/dashboard/pending-users", label: "Pending Approvals", icon: FaUserClock },
   { href: "/admin/dashboard/prescriptions", label: "Prescriptions", icon: FaPrescriptionBottleAlt },
   { href: "/admin/dashboard/identity-verification", label: "Identity Verification", icon: FaIdCard },
   { href: "/admin/dashboard/complaints", label: "Complaints", icon: FaExclamationCircle },
@@ -26,7 +30,7 @@ const navItems = [
 
 export default function Sidebar() {
   const pathname = usePathname();
-  const { logout } = useAuth();
+  const { logout, isLoggingOut } = useAuth();
 
   const handleLogout = async () => {
     try {
@@ -76,10 +80,23 @@ export default function Sidebar() {
       
       <button
         onClick={handleLogout}
-        className="flex items-center gap-3 px-4 py-3 rounded-md text-green-100 hover:bg-green-700 transition-all duration-200 w-full text-left"
+        disabled={isLoggingOut}
+        className="flex items-center gap-3 px-4 py-3 rounded-md text-green-100 hover:bg-green-700 transition-all duration-200 w-full text-left disabled:opacity-50 disabled:cursor-not-allowed"
       >
-        <FaSignOutAlt className="w-5 h-5 text-green-300" />
-        <span>Logout</span>
+        {isLoggingOut ? (
+          <>
+            <svg className="animate-spin h-5 w-5 text-green-300" fill="none" viewBox="0 0 24 24">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            <span>Logging out...</span>
+          </>
+        ) : (
+          <>
+            <FaSignOutAlt className="w-5 h-5 text-green-300" />
+            <span>Logout</span>
+          </>
+        )}
       </button>
     </aside>
   );

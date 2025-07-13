@@ -21,15 +21,17 @@ export async function GET(req: NextRequest) {
     // Calculate skip for pagination
     const skip = (page - 1) * limit;
 
-    // Build where clause - show approved prescriptions without price or all statuses if specified
+    // Build where clause - show prescriptions that staff can work with
     const where: any = {};
     
     if (status) {
       where.status = status;
     } else {
-      // Default: show approved prescriptions that need pricing (amount = 0) or ready prescriptions
+      // Default: show pending prescriptions for approval, approved prescriptions for pricing, and processed prescriptions
       where.OR = [
-        { status: 'approved', amount: 0 },
+        { status: 'pending' },  // Staff can approve these
+        { status: 'approved', amount: 0 },  // Staff can add pricing
+        { status: 'approved' },  // Staff can see all approved prescriptions
         { status: 'ready_to_ship' },
         { status: 'dispatched' },
         { status: 'delivered' }

@@ -10,6 +10,7 @@ export default function ComplaintsPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState('');
+  const [fieldErrors, setFieldErrors] = useState<{[key: string]: string}>({});
   
   const [formData, setFormData] = useState({
     title: '',
@@ -21,12 +22,22 @@ export default function ComplaintsPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    console.log('🔍 Complaint form submission started');
+    console.log('User:', user);
+    console.log('Form data:', formData);
+    
     if (!user) {
+      console.log('❌ User not authenticated, redirecting to login');
       router.push('/auth/login');
       return;
     }
 
     if (!formData.title.trim() || !formData.description.trim()) {
+      console.log('❌ Form validation failed - missing required fields');
+      setFieldErrors({
+        title: !formData.title.trim() ? 'Title is required' : '',
+        description: !formData.description.trim() ? 'Description is required' : ''
+      });
       setError('Please fill in all required fields');
       return;
     }
@@ -34,19 +45,46 @@ export default function ComplaintsPage() {
     try {
       setIsSubmitting(true);
       setError('');
+      setFieldErrors({});
+      
+      console.log('📡 Sending complaint to API...');
+
+      // Create FormData to match API expectations
+      const submitFormData = new FormData();
+      submitFormData.append('title', formData.title.trim());
+      submitFormData.append('description', formData.description.trim());
+      submitFormData.append('category', formData.category);
+      submitFormData.append('priority', formData.priority);
+
+      console.log('📡 FormData contents:');
+      for (let [key, value] of submitFormData.entries()) {
+        console.log(`  ${key}: ${value}`);
+      }
 
       const response = await fetch('/api/complaints', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
         credentials: 'include',
-        body: JSON.stringify(formData)
+        body: submitFormData // Send FormData instead of JSON
       });
 
-      const data = await response.json();
+      console.log('📡 API Response status:', response.status);
+      console.log('📡 API Response headers:', Object.fromEntries(response.headers.entries()));
+      
+      const responseText = await response.text();
+      console.log('📡 API Response text:', responseText);
+      
+      let data;
+      try {
+        data = JSON.parse(responseText);
+        console.log('📡 API Response parsed data:', data);
+      } catch (parseError) {
+        console.error('❌ Failed to parse response as JSON:', parseError);
+        setError('Invalid response from server');
+        return;
+      }
 
       if (response.ok && data.success) {
+        console.log('✅ Complaint submitted successfully');
         setSuccess(true);
         setFormData({
           title: '',
@@ -54,11 +92,18 @@ export default function ComplaintsPage() {
           category: 'service',
           priority: 'medium'
         });
+        
+        // Show success message briefly, then redirect to dashboard
+        setTimeout(() => {
+          router.push('/dashboard/complaints?submitted=true');
+        }, 2000);
       } else {
+        console.log('❌ Complaint submission failed:', data.message);
         setError(data.message || 'Failed to submit complaint');
       }
     } catch (err) {
-      setError('Failed to submit complaint');
+      console.error('❌ Network error:', err);
+      setError('Network error occurred. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
@@ -70,6 +115,7 @@ export default function ComplaintsPage() {
       [e.target.name]: e.target.value
     });
     setError('');
+    setFieldErrors({});
     setSuccess(false);
   };
 
@@ -118,8 +164,16 @@ export default function ComplaintsPage() {
                       Complaint submitted successfully!
                     </h3>
                     <p className="mt-1 text-sm text-green-700">
-                      We have received your complaint and will review it promptly. You will receive updates on the status of your complaint.
+                      Your complaint has been received and will be reviewed promptly. Redirecting you to your complaints dashboard...
                     </p>
+                    <div className="mt-3">
+                      <button
+                        onClick={() => router.push('/dashboard/complaints?submitted=true')}
+                        className="text-sm font-medium text-green-800 hover:text-green-900 underline"
+                      >
+                        Go to Dashboard Now
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -127,7 +181,21 @@ export default function ComplaintsPage() {
 
             {error && (
               <div className="mb-6 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
-                {error}
+                <div className="flex">
+                  <div className="flex-shrink-0">
+                    <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                    </svg>
+                  </div>
+                  <div className="ml-3">
+                    <h3 className="text-sm font-medium text-red-800">
+                      Error submitting complaint
+                    </h3>
+                    <p className="mt-1 text-sm text-red-700">
+                      {error}
+                    </p>
+                  </div>
+                </div>
               </div>
             )}
 
@@ -143,9 +211,14 @@ export default function ComplaintsPage() {
                   value={formData.title}
                   onChange={handleChange}
                   placeholder="Brief summary of your complaint"
-                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-black"
+                  className={`mt-1 block w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-black ${
+                    fieldErrors.title ? 'border-red-300' : 'border-gray-300'
+                  }`}
                   required
                 />
+                {fieldErrors.title && (
+                  <p className="mt-1 text-sm text-red-600">{fieldErrors.title}</p>
+                )}
               </div>
 
               <div>
@@ -196,9 +269,14 @@ export default function ComplaintsPage() {
                   onChange={handleChange}
                   placeholder="Please provide a detailed description of your complaint, including when it occurred, who was involved, and what outcome you're seeking..."
                   rows={6}
-                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-black"
+                  className={`mt-1 block w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-black ${
+                    fieldErrors.description ? 'border-red-300' : 'border-gray-300'
+                  }`}
                   required
                 />
+                {fieldErrors.description && (
+                  <p className="mt-1 text-sm text-red-600">{fieldErrors.description}</p>
+                )}
                 <p className="mt-2 text-sm text-gray-500">
                   The more details you provide, the better we can address your concerns.
                 </p>
@@ -225,9 +303,19 @@ export default function ComplaintsPage() {
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
+                  className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {isSubmitting ? 'Submitting...' : 'Submit Complaint'}
+                  {isSubmitting ? (
+                    <span className="flex items-center">
+                      <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      Submitting...
+                    </span>
+                  ) : (
+                    'Submit Complaint'
+                  )}
                 </button>
               </div>
             </form>

@@ -28,7 +28,8 @@ export async function GET(req: NextRequest) {
       OR: [
         { name: { contains: search } },
         { email: { contains: search } },
-        { role: { name: { contains: search } } }
+        { phone: { contains: search } },
+        { role: { contains: search } }
       ]
     } : {};
 
@@ -38,15 +39,16 @@ export async function GET(req: NextRequest) {
     // Get users with pagination and search
     const users = await prisma.user.findMany({
       where,
-      include: {
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        address: true,
+        phone: true,
         role: true,
-        supervisor: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-          }
-        }
+        accountStatus: true,
+        createdAt: true,
+        updatedAt: true,
       },
       orderBy: {
         [sortBy]: sortOrder as 'asc' | 'desc',

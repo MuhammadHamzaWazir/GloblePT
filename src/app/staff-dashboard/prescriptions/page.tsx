@@ -55,6 +55,16 @@ export default function StaffPrescriptionsPage() {
   const [isPriceModalOpen, setIsPriceModalOpen] = useState(false);
   const [newPrice, setNewPrice] = useState('');
   const [selectedPrescriptionForPrice, setSelectedPrescriptionForPrice] = useState<Prescription | null>(null);
+  const [isStatusModalOpen, setIsStatusModalOpen] = useState(false);
+  const [selectedPrescriptionForStatus, setSelectedPrescriptionForStatus] = useState<Prescription | null>(null);
+  const [statusForm, setStatusForm] = useState({
+    status: '',
+    price: '',
+    notes: '',
+    rejectionReason: ''
+  });
+  const [validTransitions, setValidTransitions] = useState<string[]>([]);
+  const [updatingStatus, setUpdatingStatus] = useState(false);
 
   // Redirect if not staff or admin
   useEffect(() => {
@@ -189,6 +199,107 @@ export default function StaffPrescriptionsPage() {
     }
   };
 
+  // Handle prescription approval
+  const handleApproval = async (prescriptionId: number, action: 'approve' | 'reject', price?: number, rejectionReason?: string) => {
+    try {
+      setActionLoading(true);
+      
+      const response = await fetch(`/api/prescriptions/${prescriptionId}/approve`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        credentials: 'include',
+        body: JSON.stringify({ 
+          action,
+          price: price || undefined,
+          rejectionReason: rejectionReason || undefined
+        })
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        // Refresh the prescriptions list
+        fetchPrescriptions(pagination?.currentPage || 1);
+        setIsModalOpen(false);
+        setSelectedPrescription(null);
+        setError('');
+      } else {
+        setError(data.message || `Failed to ${action} prescription`);
+      }
+    } catch (err) {
+      setError(`Failed to ${action} prescription`);
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  // Handle comprehensive status update
+  const handleStatusUpdate = async (prescription: Prescription) => {
+    setSelectedPrescriptionForStatus(prescription);
+    setStatusForm({
+      status: prescription.status,
+      price: prescription.amount.toString(),
+      notes: '',
+      rejectionReason: ''
+    });
+    
+    // Fetch valid transitions for this prescription
+    try {
+      const response = await fetch(`/api/prescriptions/${prescription.id}/status`, {
+        credentials: 'include'
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success) {
+          setValidTransitions(data.data.validTransitions);
+        }
+      }
+    } catch (error) {
+      console.error('Failed to fetch valid transitions:', error);
+    }
+    
+    setIsStatusModalOpen(true);
+  };
+
+  const submitStatusUpdate = async () => {
+    if (!selectedPrescriptionForStatus) return;
+
+    try {
+      setUpdatingStatus(true);
+      setError('');
+
+      const response = await fetch(`/api/prescriptions/${selectedPrescriptionForStatus.id}/status`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          status: statusForm.status,
+          price: statusForm.price ? parseFloat(statusForm.price) : undefined,
+          notes: statusForm.notes,
+          rejectionReason: statusForm.rejectionReason
+        })
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        setIsStatusModalOpen(false);
+        fetchPrescriptions(pagination?.currentPage || 1); // Refresh the list
+      } else {
+        throw new Error(data.message || 'Failed to update status');
+      }
+    } catch (error: any) {
+      setError(error.message || 'Failed to update prescription status');
+    } finally {
+      setUpdatingStatus(false);
+    }
+  };
+
   const getStatusBadgeColor = (status: string) => {
     switch (status) {
       case 'unapproved': return 'bg-gray-100 text-gray-800';
@@ -208,6 +319,33 @@ export default function StaffPrescriptionsPage() {
       case 'refunded': return 'bg-yellow-100 text-yellow-800';
       default: return 'bg-gray-100 text-gray-800';
     }
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status.toLowerCase()) {
+      case 'pending':
+        return 'bg-yellow-100 text-yellow-800';
+      case 'processing':
+        return 'bg-blue-100 text-blue-800';
+      case 'approved':
+        return 'bg-green-100 text-green-800';
+      case 'ready':
+        return 'bg-purple-100 text-purple-800';
+      case 'dispatched':
+        return 'bg-indigo-100 text-indigo-800';
+      case 'completed':
+      case 'delivered':
+        return 'bg-emerald-100 text-emerald-800';
+      case 'rejected':
+      case 'cancelled':
+        return 'bg-red-100 text-red-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  const formatStatus = (status: string) => {
+    return status.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
   };
 
   if (!user) {
@@ -243,6 +381,7 @@ export default function StaffPrescriptionsPage() {
               className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-black"
             >
               <option value="">All Status</option>
+              <option value="pending">Unapproved</option>
               <option value="approved">Approved</option>
               <option value="paid">Paid</option>
               <option value="ready_to_ship">Ready to Ship</option>
@@ -327,6 +466,30 @@ export default function StaffPrescriptionsPage() {
                         >
                           View/Update
                         </button>
+                        <button
+                          onClick={() => handleStatusUpdate(prescription)}
+                          className="text-purple-600 hover:text-purple-900"
+                        >
+                          Status
+                        </button>
+                        {prescription.status === 'pending' && (
+                          <>
+                            <button
+                              onClick={() => handleApproval(prescription.id, 'approve')}
+                              disabled={actionLoading}
+                              className="text-green-600 hover:text-green-900 disabled:opacity-50"
+                            >
+                              {actionLoading ? 'Processing...' : 'Approve'}
+                            </button>
+                            <button
+                              onClick={() => handleApproval(prescription.id, 'reject')}
+                              disabled={actionLoading}
+                              className="text-red-600 hover:text-red-900 disabled:opacity-50"
+                            >
+                              {actionLoading ? 'Processing...' : 'Reject'}
+                            </button>
+                          </>
+                        )}
                         {prescription.status === 'approved' && (
                           <button
                             onClick={() => {
@@ -339,6 +502,12 @@ export default function StaffPrescriptionsPage() {
                             Update Price
                           </button>
                         )}
+                        <button
+                          onClick={() => handleStatusUpdate(prescription)}
+                          className="text-indigo-600 hover:text-indigo-900"
+                        >
+                          Update Status
+                        </button>
                       </div>
                     </td>
                   </tr>
@@ -456,11 +625,30 @@ export default function StaffPrescriptionsPage() {
                   </div>
                 )}
 
-                {/* Status Update Section - Staff can only update certain statuses */}
+                {/* Status Update Section - Staff can approve/reject and update certain statuses */}
                 <div className="border-t pt-4">
                   <h4 className="text-md font-medium text-gray-900 mb-3">Update Status (Staff Actions)</h4>
                   
                   <div className="space-y-3">
+                    {selectedPrescription.status === 'pending' && (
+                      <div className="flex space-x-2">
+                        <button
+                          onClick={() => handleApproval(selectedPrescription.id, 'approve')}
+                          disabled={actionLoading}
+                          className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 disabled:opacity-50"
+                        >
+                          {actionLoading ? 'Processing...' : 'Approve Prescription'}
+                        </button>
+                        <button
+                          onClick={() => handleApproval(selectedPrescription.id, 'reject')}
+                          disabled={actionLoading}
+                          className="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700 disabled:opacity-50"
+                        >
+                          {actionLoading ? 'Processing...' : 'Reject Prescription'}
+                        </button>
+                      </div>
+                    )}
+                    
                     {(selectedPrescription.status === 'paid' || selectedPrescription.paymentStatus === 'paid') && (
                       <button
                         onClick={() => handleStatusChange(selectedPrescription.id, 'update_price')}
@@ -579,6 +767,95 @@ export default function StaffPrescriptionsPage() {
                 className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 disabled:opacity-50"
               >
                 {actionLoading ? 'Updating...' : 'Update Price'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Status Update Modal */}
+      {isStatusModalOpen && selectedPrescriptionForStatus && (
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+          <div className="relative top-20 mx-auto p-5 border w-full max-w-2xl shadow-lg rounded-md bg-white">
+            <h3 className="text-lg font-bold text-gray-900 mb-4">
+              Update Prescription Status
+            </h3>
+            
+            <div className="mb-4">
+              <p className="text-sm text-gray-600 mb-2">
+                <strong>Customer:</strong> {selectedPrescriptionForStatus.user.name}
+              </p>
+              <p className="text-sm text-gray-600 mb-2">
+                <strong>Medicine:</strong> {selectedPrescriptionForStatus.medicine}
+              </p>
+              <p className="text-sm text-gray-600 mb-4">
+                <strong>Current Status:</strong> {formatStatus(selectedPrescriptionForStatus.status)}
+              </p>
+            </div>
+
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                New Status
+              </label>
+              <select
+                value={statusForm.status}
+                onChange={(e) => setStatusForm({ ...statusForm, status: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-black"
+              >
+                <option value="">Select status</option>
+                {validTransitions.map((status) => (
+                  <option key={status} value={status}>
+                    {formatStatus(status)}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {statusForm.status && (
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Price (if applicable)
+                </label>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={statusForm.price}
+                  onChange={(e) => setStatusForm({ ...statusForm, price: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-black"
+                  placeholder="Enter price"
+                />
+              </div>
+            )}
+
+            {statusForm.status === 'rejected' && (
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Rejection Reason
+                </label>
+                <textarea
+                  value={statusForm.rejectionReason}
+                  onChange={(e) => setStatusForm({ ...statusForm, rejectionReason: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-black"
+                  placeholder="Enter reason for rejection"
+                  rows={3}
+                />
+              </div>
+            )}
+
+            <div className="flex justify-end space-x-3">
+              <button
+                onClick={() => setIsStatusModalOpen(false)}
+                className="bg-gray-500 text-white px-4 py-2 rounded-md hover:bg-gray-600"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={submitStatusUpdate}
+                disabled={updatingStatus}
+                className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 disabled:opacity-50"
+              >
+                {updatingStatus ? 'Updating...' : 'Update Status'}
               </button>
             </div>
           </div>

@@ -17,7 +17,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
       return createErrorResponse("Invalid prescription ID", 400);
     }
 
-    const { status, rejectedReason, trackingNumber, amount, staffId } = await req.json();
+    const { status, rejectedReason, trackingNumber, courierName, amount, staffId } = await req.json();
 
     // Validate status
     const validStatuses = ['pending', 'approved', 'rejected', 'ready_to_ship', 'dispatched', 'delivered'];
@@ -77,9 +77,13 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
       }
     }
 
-    // Admin can update tracking number
+    // Admin can update tracking number and courier name
     if (trackingNumber) {
       updateData.trackingNumber = trackingNumber;
+    }
+    
+    if (courierName) {
+      updateData.courierName = courierName;
     }
 
     // Update prescription
@@ -94,9 +98,31 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
             email: true,
             address: true
           }
-        }
+        },
+        order: true
       }
     });
+
+    // If marking as dispatched, also update the corresponding order
+    if (status === 'dispatched' && updatedPrescription.order) {
+      const orderUpdateData: any = {
+        status: 'dispatched',
+        dispatchedAt: new Date()
+      };
+      
+      if (trackingNumber) {
+        orderUpdateData.trackingNumber = trackingNumber;
+      }
+      
+      if (courierName) {
+        orderUpdateData.courierName = courierName;
+      }
+      
+      await prisma.order.update({
+        where: { id: updatedPrescription.order.id },
+        data: orderUpdateData
+      });
+    }
 
     return createSuccessResponse({
       prescription: updatedPrescription,

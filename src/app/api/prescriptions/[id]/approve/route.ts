@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { requireAuth } from "@/lib/auth";
 import { createSuccessResponse, createErrorResponse, handleApiError } from "@/lib/api-helpers";
 
-// PUT /api/prescriptions/[id]/approve - Approve prescription (Admin/Supervisor only)
+// PUT /api/prescriptions/[id]/approve - Approve prescription (Admin/Staff only)
 export async function PUT(
   req: NextRequest,
   { params }: { params: { id: string } }
@@ -21,9 +21,9 @@ export async function PUT(
       return createErrorResponse("Unauthorized access", 401);
     }
 
-    // Only supervisors and admins can approve prescriptions
-    if (!['supervisor', 'admin'].includes(user.role?.toLowerCase())) {
-      return createErrorResponse("Only supervisors and admins can approve prescriptions", 403);
+    // Only staff and admins can approve prescriptions
+    if (!['staff', 'admin'].includes(user.role?.toLowerCase())) {
+      return createErrorResponse("Only staff and admins can approve prescriptions", 403);
     }
 
     const { action, price, rejectionReason, notes } = await req.json();

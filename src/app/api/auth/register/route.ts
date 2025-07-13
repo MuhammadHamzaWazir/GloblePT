@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
 import { generateToken } from "@/lib/auth";
+import { writeFile, mkdir } from 'fs/promises';
+import { join } from 'path';
 
 export async function POST(req: Request) {
   try {
@@ -12,25 +14,30 @@ export async function POST(req: Request) {
     const email = formData.get('email') as string;
     const password = formData.get('password') as string;
     const address = formData.get('address') as string;
+    const phone = formData.get('phone') as string;
     const dateOfBirth = formData.get('dateOfBirth') as string;
-    const nationalInsuranceNumber = formData.get('nationalInsuranceNumber') as string;
-    const nhsNumber = formData.get('nhsNumber') as string;
     
     // Files for identity verification
     const photoId = formData.get('photoId') as File;
     const addressProof = formData.get('addressProof') as File;
-    
-    // Medical history data (stored as JSON in existing fields for now)
-    const currentMedications = formData.get('currentMedications') as string;
-    const allergies = formData.get('allergies') as string;
-    const medicalConditions = formData.get('medicalConditions') as string;
-    const isPregnant = formData.get('isPregnant') === 'true';
-    const isBreastfeeding = formData.get('isBreastfeeding') === 'true';
 
     // Validate required fields
-    if (!name || !email || !password || !address || !dateOfBirth) {
+    if (!name || !email || !password || !address || !phone || !dateOfBirth) {
       return NextResponse.json({ 
-        message: "Missing required fields: name, email, password, address, and date of birth are required." 
+        message: "Missing required fields: name, email, password, address, phone, and date of birth are required." 
+      }, { status: 400 });
+    }
+
+    // Validate files are uploaded
+    if (!photoId || photoId.size === 0) {
+      return NextResponse.json({ 
+        message: "Photo ID is required for verification." 
+      }, { status: 400 });
+    }
+
+    if (!addressProof || addressProof.size === 0) {
+      return NextResponse.json({ 
+        message: "Address proof is required for verification." 
       }, { status: 400 });
     }
 
@@ -39,6 +46,15 @@ export async function POST(req: Request) {
     if (!emailRegex.test(email)) {
       return NextResponse.json({ 
         message: "Invalid email format." 
+      }, { status: 400 });
+    }
+
+    // Validate phone format (UK mobile number)
+    const phoneRegex = /^(\+44\s?7\d{3}|\(?07\d{3}\)?)\s?\d{3}\s?\d{3}$/;
+    const cleanPhone = phone.replace(/\s/g, '');
+    if (!phoneRegex.test(phone)) {
+      return NextResponse.json({ 
+        message: "Please enter a valid UK mobile number (e.g., 07xxx xxx xxx or +44 7xxx xxx xxx)." 
       }, { status: 400 });
     }
 
@@ -72,88 +88,86 @@ export async function POST(req: Request) {
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 12);
 
-    // Handle file uploads (simplified for now - store as JSON in existing fields)
-    let photoIdUrl = null;
-    let addressProofUrl = null;
-
-    if (photoId && photoId.size > 0) {
-      photoIdUrl = `uploads/photo-id-${Date.now()}-${photoId.name}`;
+    // Handle file uploads
+    const uploadsDir = join(process.cwd(), 'public', 'uploads');
+    
+    // Ensure uploads directory exists
+    try {
+      await mkdir(uploadsDir, { recursive: true });
+    } catch (error) {
+      // Directory might already exist
     }
 
-    if (addressProof && addressProof.size > 0) {
-      addressProofUrl = `uploads/address-proof-${Date.now()}-${addressProof.name}`;
-    }
+    // Save photo ID
+    const photoIdFileName = `photo-id-${Date.now()}-${photoId.name}`;
+    const photoIdPath = join(uploadsDir, photoIdFileName);
+    const photoIdBuffer = Buffer.from(await photoId.arrayBuffer());
+    await writeFile(photoIdPath, photoIdBuffer);
+    const photoIdUrl = `/api/uploads/${photoIdFileName}`;
 
-    // Create medical profile data as JSON
-    const medicalProfileData = {
-      dateOfBirth,
-      currentMedications: currentMedications ? currentMedications.split(',').map(m => m.trim()) : [],
-      allergies: allergies ? allergies.split(',').map(a => a.trim()) : [],
-      medicalConditions: medicalConditions ? medicalConditions.split(',').map(c => c.trim()) : [],
-      isPregnant,
-      isBreastfeeding,
-      ageVerified: age >= 16,
-      identityVerified: false,
-      accountStatus: "pending"
-    };
+    // Save address proof
+    const addressProofFileName = `address-proof-${Date.now()}-${addressProof.name}`;
+    const addressProofPath = join(uploadsDir, addressProofFileName);
+    const addressProofBuffer = Buffer.from(await addressProof.arrayBuffer());
+    await writeFile(addressProofPath, addressProofBuffer);
+    const addressProofUrl = `/api/uploads/${addressProofFileName}`;
 
-    // Get customer role ID (default role for all new registrations)
-    const customerRole = await prisma.role.findFirst({
-      where: { 
-        OR: [
-          { name: { contains: 'customer' } },
-          { name: { contains: 'CUSTOMER' } }
-        ]
-      }
-    });
-
-    // Create user with identity verification data (using existing schema fields)
+    // Create user with pending status
     const user = await prisma.user.create({
       data: {
         name,
         email,
         password: hashedPassword,
         address,
-        nationalInsuranceNumber,
-        nhsNumber,
-        file1Url: photoIdUrl, // Photo ID
-        file2Url: addressProofUrl, // Address proof
-        roleId: customerRole?.id || 1, // Default customer role
-      },
-      include: {
-        role: true
+        phone,
+        dateOfBirth: new Date(dateOfBirth),
+        photoIdUrl,
+        addressProofUrl,
+        accountStatus: "pending", // User cannot login until admin approves
+        role: "customer", // Using UserRole enum
+        identityVerified: false,
+        ageVerified: age >= 16,
       }
     });
 
-    // Generate JWT token
-    const token = generateToken({
-      id: user.id.toString(),
-      email: user.email,
-      name: user.name,
-      role: user.role?.name || 'CUSTOMER'
-    });
+    // Send registration email notification
+    try {
+      const { sendEmail } = await import('@/lib/email');
+      await sendEmail({
+        to: email,
+        subject: 'Registration Received - Global Pharma Trading',
+        text: `Welcome to Global Pharma Trading! Your registration has been received and is pending approval. You will receive an email once your identity documents have been verified.`,
+        html: `
+          <h2>Welcome to Global Pharma Trading!</h2>
+          <p>Dear ${name},</p>
+          <p>Thank you for registering with Global Pharma Trading. We have received your registration and supporting documents.</p>
+          <p><strong>What happens next?</strong></p>
+          <ul>
+            <li>Our team will review your identity documents (Photo ID and Address Proof)</li>
+            <li>This process typically takes 1-2 business days</li>
+            <li>You will receive an email confirmation once your account is approved</li>
+            <li>You will then be able to log in and access our pharmacy services</li>
+          </ul>
+          <p>If you have any questions, please contact our customer service team.</p>
+          <p>Best regards,<br>Global Pharma Trading Team</p>
+        `
+      });
+    } catch (emailError) {
+      console.error('Failed to send registration email:', emailError);
+      // Don't fail registration if email fails
+    }
 
-    // Set cookie
-    const response = NextResponse.json({
-      message: "Registration successful! Your account is pending verification by our pharmacy team.",
+    // Note: Do not set authentication cookie since user needs approval first
+    return NextResponse.json({
+      message: "Registration successful! Your account is pending approval. You will receive an email once your identity documents have been verified and your account is approved.",
       user: {
         id: user.id,
         name: user.name,
         email: user.email,
-        medicalProfile: medicalProfileData,
+        accountStatus: user.accountStatus
       },
-      requiresIdentityVerification: !photoIdUrl || !addressProofUrl,
-      requiresPharmacistReview: currentMedications || allergies || medicalConditions || isPregnant || isBreastfeeding,
+      requiresApproval: true
     });
-
-    response.cookies.set('token', token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
-      maxAge: 60 * 60 * 24 * 7, // 1 week
-    });
-
-    return response;
 
   } catch (error) {
     console.error('Registration error:', error);

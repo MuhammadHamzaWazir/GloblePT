@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
 import jwt from 'jsonwebtoken';
+import path from 'path';
+import { promises as fs } from 'fs';
 
 const prisma = new PrismaClient();
 
@@ -59,16 +61,14 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      data: {
-        complaints,
-        pagination: {
-          currentPage: page,
-          totalPages,
-          totalComplaints,
-          limit,
-          hasNext: page < totalPages,
-          hasPrev: page > 1
-        }
+      complaints,
+      pagination: {
+        currentPage: page,
+        totalPages,
+        totalComplaints,
+        limit,
+        hasNext: page < totalPages,
+        hasPrev: page > 1
       }
     });
 
@@ -84,11 +84,16 @@ export async function GET(request: NextRequest) {
 // POST - Create new complaint
 export async function POST(request: NextRequest) {
   try {
+    console.log('🔍 Complaint API - POST request received');
+    
     // Get auth token from cookie
     const cookieStore = request.cookies;
     const token = cookieStore.get('pharmacy_auth')?.value;
+    
+    console.log('🔍 Token found:', token ? 'Yes' : 'No');
 
     if (!token) {
+      console.log('❌ No authentication token found');
       return NextResponse.json({ 
         success: false, 
         message: 'Authentication required' 
@@ -97,10 +102,23 @@ export async function POST(request: NextRequest) {
 
     // Verify JWT token
     const decoded = jwt.verify(token, process.env.JWT_SECRET!) as any;
-    const userId = decoded.userId;
+    const userId = parseInt(decoded.id || decoded.userId);
+    
+    console.log('🔍 Decoded token:', { id: decoded.id, userId: decoded.userId, email: decoded.email });
+    console.log('🔍 Using user ID:', userId);
 
-    const body = await request.json();
-    const { title, description, category, priority, fileUrl } = body;
+    // Parse FormData
+    const formData = await request.formData();
+    console.log('🔍 FormData keys:', Array.from(formData.keys()));
+    
+    const title = formData.get('title') as string;
+    const description = formData.get('description') as string;
+    const category = formData.get('category') as string || 'service';
+    const priority = formData.get('priority') as string || 'medium';
+    const affectedService = formData.get('affectedService') as string;
+    const orderId = formData.get('orderId') as string;
+
+    console.log('🔍 Parsed data:', { title, description, category, priority, affectedService, orderId });
 
     // Validate required fields
     if (!title || !description) {
@@ -111,7 +129,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Validate category
-    const validCategories = ['service', 'staff', 'product', 'delivery', 'billing'];
+    const validCategories = ['service', 'delivery', 'medication', 'billing', 'website', 'staff', 'other'];
     if (category && !validCategories.includes(category)) {
       return NextResponse.json({ 
         success: false, 
@@ -128,17 +146,54 @@ export async function POST(request: NextRequest) {
       }, { status: 400 });
     }
 
+    // Handle file uploads (if any)
+    let fileUrl = null;
+    const files = formData.getAll('file_0') as File[];
+    if (files.length > 0 && files[0].size > 0) {
+      const file = files[0];
+      console.log('🔍 File uploaded:', file.name, file.size);
+      
+      // Create safe filename
+      const timestamp = Date.now();
+      const sanitizedName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
+      const fileName = `${timestamp}_${sanitizedName}`;
+      
+      try {
+        // Save file to public/uploads/complaints
+        const uploadDir = path.join(process.cwd(), 'public', 'uploads', 'complaints');
+        const filePath = path.join(uploadDir, fileName);
+        
+        // Convert file to buffer and save
+        const buffer = Buffer.from(await file.arrayBuffer());
+        await fs.writeFile(filePath, buffer);
+        
+        fileUrl = `/uploads/complaints/${fileName}`;
+        console.log('✅ File saved to:', filePath);
+      } catch (fileError) {
+        console.error('❌ Error saving file:', fileError);
+        // Continue without file if upload fails
+      }
+    }
+
     // Create complaint
+    const complaintData: any = {
+      userId,
+      title: title.trim(),
+      description: description.trim(),
+      category: category || 'service',
+      priority: priority || 'medium',
+      status: 'pending'
+    };
+
+    // Add optional fields
+    if (fileUrl) complaintData.fileUrl = fileUrl;
+    if (affectedService) complaintData.affectedService = affectedService;
+    if (orderId) complaintData.orderId = parseInt(orderId);
+
+    console.log('🔍 Creating complaint with data:', complaintData);
+
     const complaint = await prisma.complaint.create({
-      data: {
-        userId,
-        title: title.trim(),
-        description: description.trim(),
-        category: category || 'service',
-        priority: priority || 'medium',
-        fileUrl: fileUrl || null,
-        status: 'received'
-      },
+      data: complaintData,
       include: {
         user: {
           select: {

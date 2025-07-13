@@ -8,8 +8,7 @@ async function createStaffRecords() {
 
     // Get all users with staff role
     const staffUsers = await prisma.user.findMany({
-      where: { role: { name: 'staff' } },
-      include: { role: true }
+      where: { role: 'staff' }
     });
 
     console.log(`Found ${staffUsers.length} users with staff role`);

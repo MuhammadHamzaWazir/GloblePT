@@ -1,35 +1,26 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
-import jwt from 'jsonwebtoken';
-
-const prisma = new PrismaClient();
+import { prisma } from '../../../../lib/prisma';
+import { requireAuth } from '../../../../lib/auth';
+import { createSuccessResponse, createErrorResponse, handleApiError } from '../../../../lib/api-helpers';
 
 // GET - Fetch all complaints (admin only)
 export async function GET(request: NextRequest) {
   try {
-    // Get auth token from cookie
-    const cookieStore = request.cookies;
-    const token = cookieStore.get('pharmacy_auth')?.value;
-
-    if (!token) {
-      return NextResponse.json({ 
-        success: false, 
-        message: 'Authentication required' 
-      }, { status: 401 });
+    console.log('🔍 Admin complaints API - GET request received');
+    
+    // Check authentication
+    const user = await requireAuth(request);
+    console.log('🔍 Auth result:', user ? `${user.name} (${user.role})` : 'No user found');
+    
+    if (!user) {
+      console.log('❌ No authentication found');
+      return createErrorResponse('Authentication required', 401);
     }
 
-    // Verify JWT token and check role
-    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as any;
-    const user = await prisma.user.findUnique({
-      where: { id: decoded.userId },
-      include: { role: true }
-    });
-
-    if (!user || user.role?.name !== 'admin') {
-      return NextResponse.json({ 
-        success: false, 
-        message: 'Admin access required' 
-      }, { status: 403 });
+    // Check if user is admin
+    if (user.role !== 'admin') {
+      console.log('❌ Admin access required, user role:', user.role);
+      return createErrorResponse('Admin access required', 403);
     }
 
     // Get query parameters
@@ -42,7 +33,7 @@ export async function GET(request: NextRequest) {
     const search = searchParams.get('search') || '';
 
     const skip = (page - 1) * limit;
-
+    
     // Build where clause
     const where: any = {};
     if (status) where.status = status;
@@ -56,6 +47,14 @@ export async function GET(request: NextRequest) {
         { user: { email: { contains: search, mode: 'insensitive' } } }
       ];
     }
+    
+    console.log('🔍 Query parameters:', { page, limit, status, category, priority, search });
+    console.log('🔍 Where clause:', JSON.stringify(where, null, 2));
+    console.log('🔍 Skip:', skip, 'Take:', limit);
+
+    // First, let's check if there are any complaints at all
+    const totalComplaintsInDB = await prisma.complaint.count();
+    console.log('🔍 Total complaints in database:', totalComplaintsInDB);
 
     // Fetch complaints
     const [complaints, totalComplaints] = await Promise.all([
@@ -75,18 +74,6 @@ export async function GET(request: NextRequest) {
               name: true,
               email: true
             }
-          },
-          assignedBy: {
-            select: {
-              name: true,
-              email: true
-            }
-          },
-          resolvedBy: {
-            select: {
-              name: true,
-              email: true
-            }
           }
         },
         orderBy: [
@@ -100,27 +87,28 @@ export async function GET(request: NextRequest) {
     ]);
 
     const totalPages = Math.ceil(totalComplaints / limit);
+    
+    console.log('🔍 Query results:', {
+      complaintsFound: complaints.length,
+      totalComplaints,
+      totalPages,
+      currentPage: page
+    });
 
-    return NextResponse.json({
-      success: true,
-      data: {
-        complaints,
-        pagination: {
-          currentPage: page,
-          totalPages,
-          totalComplaints,
-          limit,
-          hasNext: page < totalPages,
-          hasPrev: page > 1
-        }
+    return createSuccessResponse({
+      complaints,
+      pagination: {
+        currentPage: page,
+        totalPages,
+        totalComplaints,
+        limit,
+        hasNext: page < totalPages,
+        hasPrev: page > 1
       }
     });
 
   } catch (error) {
-    console.error('Error fetching complaints:', error);
-    return NextResponse.json({ 
-      success: false, 
-      message: 'Failed to fetch complaints' 
-    }, { status: 500 });
+    console.error('❌ Error fetching complaints:', error);
+    return handleApiError(error);
   }
 }
