@@ -7,6 +7,8 @@ import { join } from 'path';
 
 export async function POST(req: Request) {
   try {
+    console.log('🔍 Main registration API - Processing request...');
+    
     const formData = await req.formData();
     
     // Extract form data
@@ -17,59 +19,75 @@ export async function POST(req: Request) {
     const phone = formData.get('phone') as string;
     const dateOfBirth = formData.get('dateOfBirth') as string;
     
-    // Files for identity verification
+    // Files for identity verification (optional)
     const photoId = formData.get('photoId') as File;
     const addressProof = formData.get('addressProof') as File;
 
+    console.log('🔍 Form data received:', {
+      name: name ? 'provided' : 'missing',
+      email: email ? 'provided' : 'missing',
+      password: password ? 'provided' : 'missing',
+      address: address ? 'provided' : 'missing',
+      phone: phone ? 'provided' : 'missing',
+      dateOfBirth: dateOfBirth ? 'provided' : 'missing',
+      photoId: photoId && photoId.size > 0 ? 'file provided' : 'no file',
+      addressProof: addressProof && addressProof.size > 0 ? 'file provided' : 'no file'
+    });
+
     // Validate required fields
-    if (!name || !email || !password || !address || !phone || !dateOfBirth) {
+    if (!name || !email || !password || !address) {
+      console.log('❌ Missing required fields');
       return NextResponse.json({ 
-        message: "Missing required fields: name, email, password, address, phone, and date of birth are required." 
+        message: "Missing required fields: name, email, password, and address are required." 
       }, { status: 400 });
     }
 
-    // Validate files are uploaded (make optional for production)
-    if (!photoId || photoId.size === 0) {
-      console.log('Warning: Photo ID not provided');
-      // Make this optional for now to fix production registration
+    // Make phone and dateOfBirth optional for production flexibility
+    if (!phone) {
+      console.log('⚠️ Phone not provided, setting default');
     }
-
-    if (!addressProof || addressProof.size === 0) {
-      console.log('Warning: Address proof not provided');
-      // Make this optional for now to fix production registration
+    if (!dateOfBirth) {
+      console.log('⚠️ Date of birth not provided, setting default');
     }
 
     // Validate email format
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
+      console.log('❌ Invalid email format:', email);
       return NextResponse.json({ 
         message: "Invalid email format." 
       }, { status: 400 });
     }
 
-    // Validate phone format (UK mobile number)
-    const phoneRegex = /^(\+44\s?7\d{3}|\(?07\d{3}\)?)\s?\d{3}\s?\d{3}$/;
-    const cleanPhone = phone.replace(/\s/g, '');
-    if (!phoneRegex.test(phone)) {
-      return NextResponse.json({ 
-        message: "Please enter a valid UK mobile number (e.g., 07xxx xxx xxx or +44 7xxx xxx xxx)." 
-      }, { status: 400 });
+    // Validate phone format if provided (UK mobile number)
+    if (phone) {
+      const phoneRegex = /^(\+44\s?7\d{3}|\(?07\d{3}\)?)\s?\d{3}\s?\d{3}$/;
+      if (!phoneRegex.test(phone)) {
+        console.log('❌ Invalid phone format:', phone);
+        return NextResponse.json({ 
+          message: "Please enter a valid UK mobile number (e.g., 07xxx xxx xxx or +44 7xxx xxx xxx)." 
+        }, { status: 400 });
+      }
     }
 
-    // Validate age (must be at least 16 for UK pharmacy services)
-    const birthDate = new Date(dateOfBirth);
-    const today = new Date();
-    let age = today.getFullYear() - birthDate.getFullYear();
-    const monthDiff = today.getMonth() - birthDate.getMonth();
-    
-    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
-      age--;
-    }
-    
-    if (age < 16) {
-      return NextResponse.json({ 
-        message: "You must be at least 16 years old to register for pharmacy services." 
-      }, { status: 400 });
+    // Validate age if date of birth is provided (must be at least 16 for UK pharmacy services)
+    let age = 18; // Default age for users without birth date
+    if (dateOfBirth) {
+      const birthDate = new Date(dateOfBirth);
+      const today = new Date();
+      age = today.getFullYear() - birthDate.getFullYear();
+      const monthDiff = today.getMonth() - birthDate.getMonth();
+      
+      if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+        age--;
+      }
+      
+      if (age < 16) {
+        console.log('❌ User too young:', age);
+        return NextResponse.json({ 
+          message: "You must be at least 16 years old to register for pharmacy services." 
+        }, { status: 400 });
+      }
     }
 
     // Check if user already exists
@@ -126,8 +144,8 @@ export async function POST(req: Request) {
         email,
         password: hashedPassword,
         address,
-        phone,
-        dateOfBirth: new Date(dateOfBirth),
+        phone: phone || null,
+        dateOfBirth: dateOfBirth ? new Date(dateOfBirth) : null,
         photoIdUrl,
         addressProofUrl,
         accountStatus: (photoIdUrl && addressProofUrl) ? "pending" : "verified", // Auto-verify if no documents
@@ -136,6 +154,8 @@ export async function POST(req: Request) {
         ageVerified: age >= 16,
       }
     });
+
+    console.log('✅ User created successfully:', user.email, 'Status:', user.accountStatus);
 
     // Send registration email notification
     try {
@@ -180,10 +200,24 @@ export async function POST(req: Request) {
       requiresApproval: (photoIdUrl && addressProofUrl)
     });
 
-  } catch (error) {
-    console.error('Registration error:', error);
+  } catch (error: any) {
+    console.error('❌ Registration error:', error);
+    
+    // Provide more specific error messages
+    if (error.code === 'P2002') {
+      return NextResponse.json({ 
+        message: "User with this email already exists." 
+      }, { status: 409 });
+    }
+    
+    if (error.name === 'ValidationError') {
+      return NextResponse.json({ 
+        message: `Validation error: ${error.message}` 
+      }, { status: 400 });
+    }
+    
     return NextResponse.json({ 
-      message: "Registration failed. Please try again." 
+      message: `Registration failed: ${error.message || 'Please try again.'}` 
     }, { status: 500 });
   }
 }

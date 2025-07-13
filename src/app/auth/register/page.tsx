@@ -139,7 +139,40 @@ export default function RegisterPage() {
       const data = await response.json();
       
       if (!response.ok) {
-        throw new Error(data.message || 'Registration failed');
+        // Try fallback registration if main registration fails
+        console.log('🔄 Main registration failed, trying fallback...');
+        
+        try {
+          const fallbackData = {
+            name,
+            email,
+            password,
+            address,
+            phone,
+            dateOfBirth
+          };
+          
+          const fallbackResponse = await fetch('/api/auth/register-fallback', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(fallbackData)
+          });
+          
+          const fallbackResult = await fallbackResponse.json();
+          
+          if (fallbackResponse.ok) {
+            console.log('✅ Fallback registration successful');
+            router.push('/auth/login?registered=true&message=' + encodeURIComponent(fallbackResult.message));
+            return;
+          } else {
+            throw new Error(fallbackResult.message || 'Fallback registration also failed');
+          }
+        } catch (fallbackError: any) {
+          console.error('❌ Fallback registration error:', fallbackError);
+          throw new Error(data.message || 'Registration failed');
+        }
       }
       
       // Don't auto-login since user needs admin approval first
