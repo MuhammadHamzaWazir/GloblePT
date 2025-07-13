@@ -4,25 +4,42 @@ import jwt from "jsonwebtoken";
 
 export async function GET(req: Request) {
   try {
+    console.log('🔍 Pending users API - GET request received');
+    
     // Get the JWT token from cookies
     const cookieHeader = req.headers.get('cookie');
+    console.log('🔍 Cookie header:', cookieHeader);
+    
     const token = cookieHeader?.split(';')
       .find(cookie => cookie.trim().startsWith('pharmacy_auth='))
       ?.split('=')[1];
 
+    console.log('🔍 Token found:', token ? 'Yes' : 'No');
+
     if (!token) {
+      console.log('❌ No authentication token found');
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
     }
 
     // Verify token and get user info
     const decoded = jwt.verify(token, process.env.JWT_SECRET!) as any;
+    console.log('🔍 Decoded token:', { id: decoded.id, userId: decoded.userId, email: decoded.email, role: decoded.role });
     
-    // Check if user is admin
-    if (decoded.role !== 'admin') {
+    // Get user from database to verify admin role
+    const adminUser = await prisma.user.findUnique({
+      where: { id: parseInt(decoded.id || decoded.userId) },
+      select: { id: true, role: true, email: true }
+    });
+
+    console.log('🔍 Admin user found:', adminUser);
+
+    if (!adminUser || adminUser.role !== 'admin') {
+      console.log('❌ Admin access required');
       return NextResponse.json({ message: "Access denied. Admin only." }, { status: 403 });
     }
 
     // Get all pending users
+    console.log('🔍 Fetching pending users...');
     const pendingUsers = await prisma.user.findMany({
       where: {
         accountStatus: 'pending'
@@ -45,22 +62,27 @@ export async function GET(req: Request) {
       }
     });
 
+    console.log('✅ Found pending users:', pendingUsers.length);
+
     return NextResponse.json({
       success: true,
       users: pendingUsers
     });
 
-  } catch (error) {
-    console.error('Error fetching pending users:', error);
+  } catch (error: any) {
+    console.error('❌ Error fetching pending users:', error);
     return NextResponse.json({ 
-      message: "Internal server error" 
+      success: false,
+      message: `Internal server error: ${error.message}` 
     }, { status: 500 });
   }
 }
 
 export async function POST(req: Request) {
   try {
+    console.log('🔍 Pending users API - POST request received');
     const { userId, action, rejectionReason } = await req.json();
+    console.log('🔍 Request data:', { userId, action, rejectionReason });
 
     // Get the JWT token from cookies
     const cookieHeader = req.headers.get('cookie');
@@ -69,14 +91,22 @@ export async function POST(req: Request) {
       ?.split('=')[1];
 
     if (!token) {
+      console.log('❌ No authentication token found');
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
     }
 
     // Verify token and get user info
     const decoded = jwt.verify(token, process.env.JWT_SECRET!) as any;
+    console.log('🔍 Decoded token:', { id: decoded.id, userId: decoded.userId, role: decoded.role });
     
-    // Check if user is admin
-    if (decoded.role !== 'admin') {
+    // Get user from database to verify admin role
+    const adminUser = await prisma.user.findUnique({
+      where: { id: parseInt(decoded.id || decoded.userId) },
+      select: { id: true, role: true, email: true }
+    });
+
+    if (!adminUser || adminUser.role !== 'admin') {
+      console.log('❌ Admin access required');
       return NextResponse.json({ message: "Access denied. Admin only." }, { status: 403 });
     }
 
@@ -114,7 +144,7 @@ export async function POST(req: Request) {
         accountStatus: action === 'approve' ? 'verified' : 'blocked',
         identityVerified: action === 'approve',
         identityVerifiedAt: action === 'approve' ? new Date() : null,
-        identityVerifiedBy: action === 'approve' ? parseInt(decoded.id) : null,
+        identityVerifiedBy: action === 'approve' ? adminUser.id : null,
       }
     });
 
@@ -169,10 +199,11 @@ export async function POST(req: Request) {
       user: updatedUser
     });
 
-  } catch (error) {
-    console.error('Error updating user status:', error);
+  } catch (error: any) {
+    console.error('❌ Error updating user status:', error);
     return NextResponse.json({ 
-      message: "Internal server error" 
+      success: false,
+      message: `Internal server error: ${error.message}` 
     }, { status: 500 });
   }
 }

@@ -33,16 +33,27 @@ export default function PendingUsersPage() {
 
   const fetchPendingUsers = async () => {
     try {
-      const response = await fetch('/api/admin/pending-users');
-      const data = await response.json();
+      console.log('🔍 Fetching pending users...');
+      const response = await fetch('/api/admin/pending-users', {
+        credentials: 'include',
+        headers: {
+          'Cache-Control': 'no-cache'
+        }
+      });
       
-      if (response.ok) {
-        setPendingUsers(data.users);
+      console.log('🔍 Response status:', response.status);
+      const data = await response.json();
+      console.log('🔍 Response data:', data);
+      
+      if (response.ok && data.success) {
+        setPendingUsers(data.users || []);
+        setError('');
       } else {
-        setError(data.message || 'Failed to fetch pending users');
+        setError(data.message || `Failed to fetch pending users (Status: ${response.status})`);
       }
-    } catch (error) {
-      setError('Network error occurred');
+    } catch (error: any) {
+      console.error('❌ Network error:', error);
+      setError(`Network error: ${error.message}`);
     } finally {
       setLoading(false);
     }
