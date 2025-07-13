@@ -1,7 +1,6 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  // Remove trailingSlash to prevent API redirect issues
   images: {
     unoptimized: true,
   },
@@ -11,8 +10,16 @@ const nextConfig: NextConfig = {
   typescript: {
     ignoreBuildErrors: true,
   },
-  // Removed assetPrefix for production
   serverExternalPackages: ['bcryptjs', '@prisma/client'],
+  experimental: {
+    serverComponentsExternalPackages: ['@prisma/client', 'bcryptjs']
+  },
+  webpack: (config, { isServer }) => {
+    if (isServer) {
+      config.externals.push('@prisma/client');
+    }
+    return config;
+  }
 };
 
 export default nextConfig;
