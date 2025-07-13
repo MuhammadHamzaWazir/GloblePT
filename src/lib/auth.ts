@@ -2,7 +2,15 @@ import jwt from 'jsonwebtoken'
 import bcrypt from 'bcryptjs'
 import { AuthUser } from './types'
 
-const JWT_SECRET = process.env.JWT_SECRET || 'fallback-secret-key'
+// Get JWT_SECRET with proper error handling
+const getJWTSecret = (): string => {
+  const secret = process.env.JWT_SECRET;
+  if (!secret) {
+    console.error('❌ JWT_SECRET environment variable is not set');
+    throw new Error('JWT_SECRET environment variable is required');
+  }
+  return secret;
+};
 
 /**
  * Hash a password
@@ -30,7 +38,7 @@ export function generateToken(user: AuthUser): string {
       name: user.name,
       role: user.role
     },
-    JWT_SECRET,
+    getJWTSecret(),
     { expiresIn: '7d' }
   )
 }
@@ -40,7 +48,7 @@ export function generateToken(user: AuthUser): string {
  */
 export function verifyToken(token: string): AuthUser | null {
   try {
-    const decoded = jwt.verify(token, JWT_SECRET) as any
+    const decoded = jwt.verify(token, getJWTSecret()) as any
     return {
       id: decoded.id,
       email: decoded.email,
@@ -48,6 +56,7 @@ export function verifyToken(token: string): AuthUser | null {
       role: decoded.role
     }
   } catch (error) {
+    console.error('JWT verification failed:', error);
     return null
   }
 }

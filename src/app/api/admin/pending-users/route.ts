@@ -1,41 +1,29 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import jwt from "jsonwebtoken";
+import { requireAuth } from "@/lib/auth";
 
 export async function GET(req: Request) {
   try {
     console.log('🔍 Pending users API - GET request received');
     
-    // Get the JWT token from cookies
-    const cookieHeader = req.headers.get('cookie');
-    console.log('🔍 Cookie header:', cookieHeader);
-    
-    const token = cookieHeader?.split(';')
-      .find(cookie => cookie.trim().startsWith('pharmacy_auth='))
-      ?.split('=')[1];
+    // Authenticate and authorize user
+    const user = await requireAuth(req);
+    console.log('🔍 Authenticated user:', user ? `${user.name} (${user.role})` : 'None');
 
-    console.log('🔍 Token found:', token ? 'Yes' : 'No');
-
-    if (!token) {
-      console.log('❌ No authentication token found');
-      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+    if (!user) {
+      console.log('❌ No authentication');
+      return NextResponse.json({ 
+        success: false,
+        message: "Unauthorized" 
+      }, { status: 401 });
     }
 
-    // Verify token and get user info
-    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as any;
-    console.log('🔍 Decoded token:', { id: decoded.id, userId: decoded.userId, email: decoded.email, role: decoded.role });
-    
-    // Get user from database to verify admin role
-    const adminUser = await prisma.user.findUnique({
-      where: { id: parseInt(decoded.id || decoded.userId) },
-      select: { id: true, role: true, email: true }
-    });
-
-    console.log('🔍 Admin user found:', adminUser);
-
-    if (!adminUser || adminUser.role !== 'admin') {
+    if (user.role !== 'admin') {
       console.log('❌ Admin access required');
-      return NextResponse.json({ message: "Access denied. Admin only." }, { status: 403 });
+      return NextResponse.json({ 
+        success: false,
+        message: "Access denied. Admin only." 
+      }, { status: 403 });
     }
 
     // Get all pending users
@@ -84,30 +72,24 @@ export async function POST(req: Request) {
     const { userId, action, rejectionReason } = await req.json();
     console.log('🔍 Request data:', { userId, action, rejectionReason });
 
-    // Get the JWT token from cookies
-    const cookieHeader = req.headers.get('cookie');
-    const token = cookieHeader?.split(';')
-      .find(cookie => cookie.trim().startsWith('pharmacy_auth='))
-      ?.split('=')[1];
+    // Authenticate and authorize user
+    const adminUser = await requireAuth(req);
+    console.log('🔍 Authenticated user:', adminUser ? `${adminUser.name} (${adminUser.role})` : 'None');
 
-    if (!token) {
-      console.log('❌ No authentication token found');
-      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+    if (!adminUser) {
+      console.log('❌ No authentication');
+      return NextResponse.json({ 
+        success: false,
+        message: "Unauthorized" 
+      }, { status: 401 });
     }
 
-    // Verify token and get user info
-    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as any;
-    console.log('🔍 Decoded token:', { id: decoded.id, userId: decoded.userId, role: decoded.role });
-    
-    // Get user from database to verify admin role
-    const adminUser = await prisma.user.findUnique({
-      where: { id: parseInt(decoded.id || decoded.userId) },
-      select: { id: true, role: true, email: true }
-    });
-
-    if (!adminUser || adminUser.role !== 'admin') {
+    if (adminUser.role !== 'admin') {
       console.log('❌ Admin access required');
-      return NextResponse.json({ message: "Access denied. Admin only." }, { status: 403 });
+      return NextResponse.json({ 
+        success: false,
+        message: "Access denied. Admin only." 
+      }, { status: 403 });
     }
 
     if (!userId || !action || !['approve', 'reject'].includes(action)) {
@@ -117,7 +99,7 @@ export async function POST(req: Request) {
     }
 
     // Get the user to be updated
-    const user = await prisma.user.findUnique({
+    const targetUser = await prisma.user.findUnique({
       where: { id: parseInt(userId) },
       select: {
         id: true,
@@ -127,11 +109,11 @@ export async function POST(req: Request) {
       }
     });
 
-    if (!user) {
+    if (!targetUser) {
       return NextResponse.json({ message: "User not found" }, { status: 404 });
     }
 
-    if (user.accountStatus !== 'pending') {
+    if (targetUser.accountStatus !== 'pending') {
       return NextResponse.json({ 
         message: "User is not in pending status" 
       }, { status: 400 });
@@ -144,7 +126,7 @@ export async function POST(req: Request) {
         accountStatus: action === 'approve' ? 'verified' : 'blocked',
         identityVerified: action === 'approve',
         identityVerifiedAt: action === 'approve' ? new Date() : null,
-        identityVerifiedBy: action === 'approve' ? adminUser.id : null,
+        identityVerifiedBy: action === 'approve' ? parseInt(adminUser.id.toString()) : null,
       }
     });
 
@@ -154,12 +136,12 @@ export async function POST(req: Request) {
       
       if (action === 'approve') {
         await sendEmail({
-          to: user.email,
+          to: targetUser.email,
           subject: 'Account Approved - Global Pharma Trading',
           text: `Welcome to Global Pharma Trading! Your account has been approved and verified. You can now log in and access our pharmacy services.`,
           html: `
             <h2>Welcome to Global Pharma Trading!</h2>
-            <p>Dear ${user.name},</p>
+            <p>Dear ${targetUser.name},</p>
             <p>Great news! Your account has been approved and verified.</p>
             <p><strong>You can now:</strong></p>
             <ul>
@@ -175,12 +157,12 @@ export async function POST(req: Request) {
         });
       } else {
         await sendEmail({
-          to: user.email,
+          to: targetUser.email,
           subject: 'Account Application Update - Global Pharma Trading',
           text: `Your account application has not been approved. ${rejectionReason ? `Reason: ${rejectionReason}` : ''} Please contact customer service if you have questions.`,
           html: `
             <h2>Account Application Update</h2>
-            <p>Dear ${user.name},</p>
+            <p>Dear ${targetUser.name},</p>
             <p>We regret to inform you that your account application has not been approved at this time.</p>
             ${rejectionReason ? `<p><strong>Reason:</strong> ${rejectionReason}</p>` : ''}
             <p>If you believe this is an error or would like to resubmit your application, please contact our customer service team.</p>
