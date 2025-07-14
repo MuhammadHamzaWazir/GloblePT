@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { readFile } from 'fs/promises';
 import { join } from 'path';
-import jwt from 'jsonwebtoken';
+import { verifyToken } from '@/lib/auth';
 
 export async function GET(
   request: NextRequest,
@@ -18,7 +18,14 @@ export async function GET(
     }
 
     // Verify token and get user info
-    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as any;
+    const decoded = verifyToken(token);
+        
+        if (!decoded) {
+          return NextResponse.json({ 
+            success: false, 
+            message: 'Invalid authentication token' 
+          }, { status: 401 });
+        }
     
     // Only allow admin users to view uploaded documents
     if (decoded.role !== 'admin') {

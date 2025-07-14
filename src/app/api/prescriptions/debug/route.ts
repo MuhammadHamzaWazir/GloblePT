@@ -1,7 +1,7 @@
 // Create a simplified version of the prescription API for debugging
 import { NextRequest, NextResponse } from "next/server";
 import { PrismaClient } from '@prisma/client';
-import jwt from 'jsonwebtoken';
+import { verifyToken } from '@/lib/auth';
 
 const prisma = new PrismaClient();
 
@@ -27,7 +27,15 @@ export async function GET(request: NextRequest) {
     // Verify JWT token
     let decoded;
     try {
-      decoded = jwt.verify(token, process.env.JWT_SECRET!) as any;
+      decoded = verifyToken(token);
+        
+      if (!decoded) {
+        return NextResponse.json({ 
+          success: false, 
+          message: 'Invalid authentication token' 
+        }, { status: 401 });
+      }
+      
       console.log('✅ [DEBUG] Token decoded successfully:', decoded);
     } catch (jwtError) {
       console.error('❌ [DEBUG] JWT verification failed:', jwtError);
@@ -37,7 +45,7 @@ export async function GET(request: NextRequest) {
       }, { status: 401 });
     }
     
-    const userId = parseInt(decoded.userId || decoded.id);
+    const userId = parseInt(decoded.id);
     console.log('🔍 [DEBUG] Parsed user ID:', userId);
 
     // Test database connection

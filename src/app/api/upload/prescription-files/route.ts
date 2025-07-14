@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { writeFile, mkdir } from 'fs/promises';
 import path from 'path';
-import jwt from 'jsonwebtoken';
+import { verifyToken } from '@/lib/auth';
 
 export async function POST(request: NextRequest) {
   try {
@@ -17,8 +17,16 @@ export async function POST(request: NextRequest) {
     }
 
     // Verify JWT token
-    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as any;
-    const userId = parseInt(decoded.userId || decoded.id);
+    const decoded = verifyToken(token);
+    
+    if (!decoded) {
+      return NextResponse.json({ 
+        success: false, 
+        message: 'Invalid authentication token' 
+      }, { status: 401 });
+    }
+    
+    const userId = parseInt(decoded.id);
 
     // Get the form data
     const formData = await request.formData();

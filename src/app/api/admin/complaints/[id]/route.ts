@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
-import jwt from 'jsonwebtoken';
+import { verifyToken } from '@/lib/auth';
 
 const prisma = new PrismaClient();
 
@@ -30,7 +30,14 @@ export async function PUT(
     }
 
     // Verify JWT token and check role
-    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as any;
+    const decoded = verifyToken(token);
+        
+        if (!decoded) {
+          return NextResponse.json({ 
+            success: false, 
+            message: 'Invalid authentication token' 
+          }, { status: 401 });
+        }
     console.log('🔍 Decoded token:', { id: decoded.id, email: decoded.email, role: decoded.role });
     
     const user = await prisma.user.findUnique({
@@ -227,7 +234,14 @@ export async function GET(
     }
 
     // Verify JWT token
-    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as any;
+    const decoded = verifyToken(token);
+        
+        if (!decoded) {
+          return NextResponse.json({ 
+            success: false, 
+            message: 'Invalid authentication token' 
+          }, { status: 401 });
+        }
     const user = await prisma.user.findUnique({
       where: { id: parseInt(decoded.id || decoded.userId) }
     });

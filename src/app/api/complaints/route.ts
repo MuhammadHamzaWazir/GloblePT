@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
-import jwt from 'jsonwebtoken';
+import { verifyToken } from '@/lib/auth';
 import path from 'path';
 import { promises as fs } from 'fs';
 
@@ -21,7 +21,14 @@ export async function GET(request: NextRequest) {
     }
 
     // Verify JWT token
-    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as any;
+    const decoded = verifyToken(token);
+        
+        if (!decoded) {
+          return NextResponse.json({ 
+            success: false, 
+            message: 'Invalid authentication token' 
+          }, { status: 401 });
+        }
     const userId = decoded.userId;
 
     // Get query parameters
@@ -101,7 +108,14 @@ export async function POST(request: NextRequest) {
     }
 
     // Verify JWT token
-    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as any;
+    const decoded = verifyToken(token);
+        
+        if (!decoded) {
+          return NextResponse.json({ 
+            success: false, 
+            message: 'Invalid authentication token' 
+          }, { status: 401 });
+        }
     const userId = parseInt(decoded.id || decoded.userId);
     
     console.log('🔍 Decoded token:', { id: decoded.id, userId: decoded.userId, email: decoded.email });

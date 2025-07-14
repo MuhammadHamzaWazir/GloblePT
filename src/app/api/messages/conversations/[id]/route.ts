@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
-import jwt from 'jsonwebtoken';
+import { verifyToken } from '@/lib/auth';
 
 const prisma = new PrismaClient();
 
@@ -19,8 +19,15 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
     }
 
     // Verify JWT token
-    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as any;
-    const userId = parseInt(decoded.userId || decoded.id);
+    const decoded = verifyToken(token);
+        
+        if (!decoded) {
+          return NextResponse.json({ 
+            success: false, 
+            message: 'Invalid authentication token' 
+          }, { status: 401 });
+        }
+    const userId = parseInt(decoded.id);
     const conversationId = parseInt(params.id);
 
     // Check if user is participant in this conversation
@@ -113,8 +120,15 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
     }
 
     // Verify JWT token
-    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as any;
-    const userId = parseInt(decoded.userId || decoded.id);
+    const decoded = verifyToken(token);
+        
+        if (!decoded) {
+          return NextResponse.json({ 
+            success: false, 
+            message: 'Invalid authentication token' 
+          }, { status: 401 });
+        }
+    const userId = parseInt(decoded.id);
     const conversationId = parseInt(params.id);
 
     const { content, messageType = 'text' } = await request.json();
