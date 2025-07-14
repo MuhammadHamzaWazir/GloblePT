@@ -1,13 +1,24 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/auth";
+import { verifyToken } from "@/lib/auth";
 import { createSuccessResponse, createErrorResponse, handleApiError } from "@/lib/api-helpers";
 
 // PUT /api/staff/prescriptions/[id] - Update prescription (staff can update certain fields)
 export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
   try {
     // Check authentication and staff role
-    const user = await requireAuth(req);
+    // Get authorization header
+    const authHeader = req.headers.get('authorization');
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+    }
+
+    const token = authHeader.substring(7);
+    const user = verifyToken(token);
+    
+    if (!user) {
+      return NextResponse.json({ message: "Invalid token" }, { status: 401 });
+    }
     if (!user || !['STAFF', 'ADMIN'].includes(user.role.toUpperCase())) {
       return createErrorResponse("Unauthorized access", 403);
     }

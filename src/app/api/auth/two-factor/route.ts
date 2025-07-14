@@ -1,13 +1,24 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/auth";
+import { verifyToken } from "@/lib/auth";
 import * as speakeasy from "speakeasy";
 import * as QRCode from "qrcode";
 
 // Generate 2FA secret and setup information
 export async function POST(req: NextRequest) {
   try {
-    const user = await requireAuth(req);
+    // Get authorization header
+    const authHeader = req.headers.get('authorization');
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+    }
+
+    const token = authHeader.substring(7);
+    const user = verifyToken(token);
+    
+    if (!user) {
+      return NextResponse.json({ message: "Invalid token" }, { status: 401 });
+    }
     if (!user) {
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
     }

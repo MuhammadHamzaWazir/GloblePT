@@ -1,12 +1,20 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/auth";
+import { verifyToken } from "@/lib/auth";
 
 export async function GET(req: Request) {
   try {
-    const user = await requireAuth(req);
-    if (!user) {
+    // Get authorization header
+    const authHeader = req.headers.get('authorization');
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+    }
+
+    const token = authHeader.substring(7);
+    const user = verifyToken(token);
+    
+    if (!user) {
+      return NextResponse.json({ message: "Invalid token" }, { status: 401 });
     }
 
     const userDetails = await prisma.user.findUnique({
@@ -37,7 +45,18 @@ export async function POST(req: Request) {
   try {
     console.log('=== GP Details API Debug ===');
     
-    const user = await requireAuth(req);
+    // Get authorization header
+    const authHeader = req.headers.get('authorization');
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+    }
+
+    const token = authHeader.substring(7);
+    const user = verifyToken(token);
+    
+    if (!user) {
+      return NextResponse.json({ message: "Invalid token" }, { status: 401 });
+    }
     console.log('Authenticated user:', user);
     
     if (!user) {

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { requireAuth } from '@/lib/auth';
+import { verifyToken } from "@/lib/auth";
 import { updateOrderStatus, getOrderDetails } from '@/lib/order-utils';
 import { sendOrderStatusUpdate } from '@/lib/email-receipts';
 import { prisma } from '@/lib/prisma';
@@ -7,7 +7,18 @@ import { prisma } from '@/lib/prisma';
 export async function GET(request: NextRequest) {
   try {
     // Check authentication and admin role
-    const user = await requireAuth(request);
+    // Get authorization header
+    const authHeader = request.headers.get('authorization');
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+    }
+
+    const token = authHeader.substring(7);
+    const user = verifyToken(token);
+    
+    if (!user) {
+      return NextResponse.json({ message: "Invalid token" }, { status: 401 });
+    }
     if (!user) {
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
     }
@@ -101,7 +112,18 @@ export async function GET(request: NextRequest) {
 export async function PATCH(request: NextRequest) {
   try {
     // Check authentication and admin role
-    const user = await requireAuth(request);
+    // Get authorization header
+    const authHeader = request.headers.get('authorization');
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+    }
+
+    const token = authHeader.substring(7);
+    const user = verifyToken(token);
+    
+    if (!user) {
+      return NextResponse.json({ message: "Invalid token" }, { status: 401 });
+    }
     if (!user) {
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
     }

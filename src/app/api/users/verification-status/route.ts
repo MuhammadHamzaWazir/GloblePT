@@ -1,12 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/auth";
+import { verifyToken } from "@/lib/auth";
 
 export async function GET(req: NextRequest) {
   try {
-    const user = await requireAuth(req);
-    if (!user) {
+    // Get authorization header
+    const authHeader = req.headers.get('authorization');
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+    }
+
+    const token = authHeader.substring(7);
+    const user = verifyToken(token);
+    
+    if (!user) {
+      return NextResponse.json({ message: "Invalid token" }, { status: 401 });
     }
 
     // Get user's verification status
@@ -16,10 +24,10 @@ export async function GET(req: NextRequest) {
         id: true,
         name: true,
         email: true,
-        file1Url: true,
-        file2Url: true,
-        nationalInsuranceNumber: true,
-        nhsNumber: true,
+        photoIdUrl: true,
+        addressProofUrl: true,
+        identityVerified: true,
+        ageVerified: true,
         address: true
       }
     });
@@ -28,46 +36,18 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ message: "User not found" }, { status: 404 });
     }
 
-    // Parse verification status from file2Url field
+    // Determine verification status based on current schema
     let verificationStatus = 'pending';
     let verifiedBy = null;
     let verifiedAt = null;
     let verificationNotes = null;
 
-    if (fullUser.file2Url?.includes('verified:')) {
+    if (fullUser.identityVerified) {
       verificationStatus = 'verified';
-      const parts = fullUser.file2Url.split('verified:')[1]?.split(':');
-      if (parts && parts.length >= 2) {
-        verifiedAt = new Date(parseInt(parts[0])).toISOString();
-        // Get verifier name (parts[1] is verifier ID)
-        try {
-          const verifier = await prisma.user.findUnique({
-            where: { id: parseInt(parts[1]) },
-            select: { name: true }
-          });
-          verifiedBy = verifier?.name || 'Admin';
-        } catch (error) {
-          verifiedBy = 'Admin';
-        }
-      }
-    } else if (fullUser.file2Url?.includes('rejected:')) {
-      verificationStatus = 'rejected';
-      const parts = fullUser.file2Url.split('rejected:')[1]?.split(':');
-      if (parts && parts.length >= 2) {
-        verifiedAt = new Date(parseInt(parts[0])).toISOString();
-        try {
-          const verifier = await prisma.user.findUnique({
-            where: { id: parseInt(parts[1]) },
-            select: { name: true }
-          });
-          verifiedBy = verifier?.name || 'Admin';
-        } catch (error) {
-          verifiedBy = 'Admin';
-        }
-      }
+      // Could add verifiedAt logic if needed
     }
 
-    // Extract verification notes from address field
+    // Extract verification notes from address field if they exist
     if (fullUser.address?.includes('[Admin Notes:')) {
       const notesMatch = fullUser.address.match(/\[Admin Notes: (.+?)\]/);
       if (notesMatch) {
@@ -78,14 +58,14 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({
       verification: {
         status: verificationStatus,
-        hasPhotoId: !!fullUser.file1Url && !fullUser.file1Url.startsWith('2fa:'),
-        hasAddressProof: !!fullUser.file2Url && !fullUser.file2Url.includes('verified:') && !fullUser.file2Url.includes('rejected:'),
-        hasNationalInsurance: !!fullUser.nationalInsuranceNumber,
-        hasNHS: !!fullUser.nhsNumber,
+        hasPhotoId: !!fullUser.photoIdUrl,
+        hasAddressProof: !!fullUser.addressProofUrl,
+        identityVerified: fullUser.identityVerified,
+        ageVerified: fullUser.ageVerified,
         verifiedBy,
         verifiedAt,
         notes: verificationNotes,
-        documentSubmitted: !!(fullUser.file1Url || fullUser.file2Url || fullUser.nationalInsuranceNumber || fullUser.nhsNumber)
+        documentSubmitted: !!(fullUser.photoIdUrl || fullUser.addressProofUrl)
       }
     });
 

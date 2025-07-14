@@ -5,9 +5,17 @@ import { getUserOrders, getOrderDetails } from '@/lib/order-utils';
 export async function GET(request: NextRequest) {
   try {
     // Check authentication
-    const user = await requireAuth(request);
-    if (!user) {
+    // Get authorization header
+    const authHeader = request.headers.get('authorization');
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+    }
+
+    const token = authHeader.substring(7);
+    const user = verifyToken(token);
+    
+    if (!user) {
+      return NextResponse.json({ message: "Invalid token" }, { status: 401 });
     }
 
     const { searchParams } = new URL(request.url);

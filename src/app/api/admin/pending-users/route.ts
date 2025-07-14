@@ -1,13 +1,24 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/auth";
+import { verifyToken } from "@/lib/auth";
 
 export async function GET(req: Request) {
   try {
     console.log('🔍 Pending users API - GET request received');
     
     // Authenticate and authorize user
-    const user = await requireAuth(req);
+    // Get authorization header
+    const authHeader = req.headers.get('authorization');
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+    }
+
+    const token = authHeader.substring(7);
+    const user = verifyToken(token);
+    
+    if (!user) {
+      return NextResponse.json({ message: "Invalid token" }, { status: 401 });
+    }
     console.log('🔍 Authenticated user:', user ? `${user.name} (${user.role})` : 'None');
 
     if (!user) {
@@ -73,7 +84,18 @@ export async function POST(req: Request) {
     console.log('🔍 Request data:', { userId, action, rejectionReason });
 
     // Authenticate and authorize user
-    const adminUser = await requireAuth(req);
+    // Get authorization header
+    const authHeader = req.headers.get('authorization');
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+    }
+
+    const token = authHeader.substring(7);
+    const adminUser = verifyToken(token);
+    
+    if (!adminUser) {
+      return NextResponse.json({ message: "Invalid token" }, { status: 401 });
+    }
     console.log('🔍 Authenticated user:', adminUser ? `${adminUser.name} (${adminUser.role})` : 'None');
 
     if (!adminUser) {

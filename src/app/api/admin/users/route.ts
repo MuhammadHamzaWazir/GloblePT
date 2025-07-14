@@ -1,14 +1,25 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
-import { requireAuth } from "@/lib/auth";
+import { verifyToken } from "@/lib/auth";
 import { createSuccessResponse, createErrorResponse, handleApiError } from "@/lib/api-helpers";
 
 // GET /api/admin/users - Get all users with pagination and search
 export async function GET(req: NextRequest) {
   try {
     // Check authentication and admin role
-    const user = await requireAuth(req);
+    // Get authorization header
+    const authHeader = req.headers.get('authorization');
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+    }
+
+    const token = authHeader.substring(7);
+    const user = verifyToken(token);
+    
+    if (!user) {
+      return NextResponse.json({ message: "Invalid token" }, { status: 401 });
+    }
     if (!user || user.role.toUpperCase() !== 'ADMIN') {
       return createErrorResponse("Unauthorized access", 403);
     }
@@ -83,7 +94,18 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     // Check authentication and admin role
-    const user = await requireAuth(req);
+    // Get authorization header
+    const authHeader = req.headers.get('authorization');
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+    }
+
+    const token = authHeader.substring(7);
+    const user = verifyToken(token);
+    
+    if (!user) {
+      return NextResponse.json({ message: "Invalid token" }, { status: 401 });
+    }
     if (!user || user.role.toUpperCase() !== 'ADMIN') {
       return createErrorResponse("Unauthorized access", 403);
     }

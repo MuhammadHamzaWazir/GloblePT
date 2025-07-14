@@ -1,13 +1,24 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/auth";
+import { verifyToken } from "@/lib/auth";
 import { createSuccessResponse, createErrorResponse, handleApiError } from "@/lib/api-helpers";
 
 // PUT /api/admin/prescriptions/[id] - Update prescription status, approve, reject, etc.
 export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
   try {
     // Check authentication and admin role
-    const user = await requireAuth(req);
+    // Get authorization header
+    const authHeader = req.headers.get('authorization');
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+    }
+
+    const token = authHeader.substring(7);
+    const user = verifyToken(token);
+    
+    if (!user) {
+      return NextResponse.json({ message: "Invalid token" }, { status: 401 });
+    }
     if (!user || user.role.toUpperCase() !== 'ADMIN') {
       return createErrorResponse("Unauthorized access", 403);
     }
@@ -138,7 +149,18 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
 export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
   try {
     // Check authentication and admin role
-    const user = await requireAuth(req);
+    // Get authorization header
+    const authHeader = req.headers.get('authorization');
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+    }
+
+    const token = authHeader.substring(7);
+    const user = verifyToken(token);
+    
+    if (!user) {
+      return NextResponse.json({ message: "Invalid token" }, { status: 401 });
+    }
     if (!user || user.role.toUpperCase() !== 'ADMIN') {
       return createErrorResponse("Unauthorized access", 403);
     }

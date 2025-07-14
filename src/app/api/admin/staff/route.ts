@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '../../../../lib/prisma';
-import { requireAuth } from '../../../../lib/auth';
+import { verifyToken } from "@/lib/auth";
 import { createSuccessResponse, createErrorResponse, handleApiError } from '../../../../lib/api-helpers';
 
 // GET - Get all staff members
@@ -9,7 +9,18 @@ export async function GET(request: NextRequest) {
     console.log('🔍 Staff API - GET request received');
 
     // Check authentication
-    const user = await requireAuth(request);
+    // Get authorization header
+    const authHeader = request.headers.get('authorization');
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+    }
+
+    const token = authHeader.substring(7);
+    const user = verifyToken(token);
+    
+    if (!user) {
+      return NextResponse.json({ message: "Invalid token" }, { status: 401 });
+    }
     if (!user) {
       console.log('❌ No authentication found');
       return createErrorResponse('Authentication required', 401);

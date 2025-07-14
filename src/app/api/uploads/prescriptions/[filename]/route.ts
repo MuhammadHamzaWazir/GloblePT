@@ -1,15 +1,23 @@
 import { NextResponse } from "next/server";
 import { readFile } from 'fs/promises';
 import { join } from 'path';
-import { requireAuth } from "@/lib/auth";
+import { verifyToken } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
 export async function GET(req: Request, { params }: { params: { filename: string } }) {
   try {
     // Verify authentication
-    const user = await requireAuth(req);
-    if (!user) {
+    // Get authorization header
+    const authHeader = req.headers.get('authorization');
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+    }
+
+    const token = authHeader.substring(7);
+    const user = verifyToken(token);
+    
+    if (!user) {
+      return NextResponse.json({ message: "Invalid token" }, { status: 401 });
     }
 
     const filename = params.filename;

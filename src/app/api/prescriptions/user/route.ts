@@ -25,7 +25,6 @@ export async function GET(request: NextRequest) {
     console.log('🔍 Verifying JWT token...');
     // Verify JWT token
     const decoded = verifyToken(token);
-    
     if (!decoded) {
       console.log('❌ Invalid authentication token');
       return NextResponse.json({ 
@@ -33,7 +32,6 @@ export async function GET(request: NextRequest) {
         message: 'Invalid authentication token' 
       }, { status: 401 });
     }
-    
     const userId = parseInt(decoded.id);
     
     console.log('🔍 Decoded user ID:', userId);
