@@ -27,18 +27,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [lastCheckTime, setLastCheckTime] = useState(0);
+  const [authCheckInProgress, setAuthCheckInProgress] = useState(false);
 
   useEffect(() => {
     // Check if user is authenticated by calling the auth/me endpoint
     const checkAuth = async () => {
       const now = Date.now();
       
-      // Prevent excessive calls - only check once every 5 seconds
-      if (now - lastCheckTime < 5000) {
+      // Prevent excessive calls - only check once every 30 seconds
+      if (now - lastCheckTime < 30000) {
         setIsLoading(false);
         return;
       }
       
+      // Prevent concurrent auth checks
+      if (authCheckInProgress) {
+        return;
+      }
+      
+      setAuthCheckInProgress(true);
       setLastCheckTime(now);
       
       try {
@@ -67,11 +74,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setUser(null);
         }
       } catch (error) {
-        console.log('Auth check failed:', error);
-        // User not authenticated, which is fine
+        // Silently handle auth check failures - this is expected when not logged in
         setUser(null);
       } finally {
         setIsLoading(false);
+        setAuthCheckInProgress(false);
       }
     };
 

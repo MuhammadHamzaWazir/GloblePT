@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
+import { prisma, withDatabaseRetry } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
 import { loginSchema } from "@/lib/validations";
 import { generateToken } from "@/lib/auth";
@@ -7,6 +7,11 @@ import { getDashboardRoute } from "@/lib/utils";
 
 export async function POST(req: Request) {
   try {
+    console.log("=== LOGIN API CALLED ===");
+    console.log("Environment:", process.env.NODE_ENV);
+    console.log("JWT_SECRET exists:", !!process.env.JWT_SECRET);
+    console.log("DATABASE_URL exists:", !!process.env.DATABASE_URL);
+    
     const body = await req.json();
     console.log("=== LOGIN DEBUG ===");
     console.log("Request body:", body);
@@ -28,24 +33,36 @@ export async function POST(req: Request) {
     console.log("Attempting to log in user:", email);
     let user;
     try {
-      user = await prisma.user.findUnique({
-        where: { email },
-        select: {
-          id: true,
-          name: true,
-          email: true,
-          password: true,
-          role: true,
-          accountStatus: true,
-          identityVerified: true,
-          createdAt: true,
-          updatedAt: true,
-        }
+      // Use retry mechanism for database operations
+      user = await withDatabaseRetry(async () => {
+        return await prisma.user.findUnique({
+          where: { email },
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            password: true,
+            role: true,
+            accountStatus: true,
+            identityVerified: true,
+            createdAt: true,
+            updatedAt: true,
+          }
+        });
+      }, 2, 1000); // 2 retries, 1 second delay
+      
+      console.log("Database query successful");
+      
+    } catch (dbError: any) {
+      console.error("Database query failed after retries:", dbError);
+      console.error("Error details:", {
+        message: dbError?.message || 'Unknown error',
+        code: dbError?.code || 'Unknown code',
+        clientVersion: dbError?.clientVersion || 'Unknown version'
       });
-    } catch (dbError) {
-      console.error("Database query failed:", dbError);
+      
       return NextResponse.json({ 
-        message: "Database temporarily unavailable." 
+        message: "Database connection failed. Please try again in a moment." 
       }, { status: 503 });
     }
 
@@ -113,12 +130,23 @@ export async function POST(req: Request) {
       }, { status: 200 });
     } else {
       // 2FA not enabled, proceed with direct login
-      const token = generateToken({
-        id: user.id.toString(),
-        email: user.email,
-        name: user.name,
-        role: user.role || 'customer'
-      });
+      console.log("Generating JWT token...");
+      
+      let token;
+      try {
+        token = generateToken({
+          id: user.id.toString(),
+          email: user.email,
+          name: user.name,
+          role: user.role || 'customer'
+        });
+        console.log("JWT token generated successfully");
+      } catch (tokenError) {
+        console.error("JWT token generation failed:", tokenError);
+        return NextResponse.json({ 
+          message: "Authentication token generation failed." 
+        }, { status: 500 });
+      }
 
       const response = NextResponse.json({ 
         message: "Login successful.",
@@ -143,8 +171,11 @@ export async function POST(req: Request) {
       return response;
     }
 
-  } catch (error) {
-    console.error("Login error:", error);
+  } catch (error: any) {
+    console.error("=== LOGIN ERROR ===");
+    console.error("Error type:", error?.constructor?.name || 'Unknown');
+    console.error("Error message:", error?.message || 'Unknown error');
+    console.error("Error stack:", error?.stack || 'No stack trace');
     
     // Handle JSON parsing errors
     if (error instanceof SyntaxError) {
@@ -153,8 +184,32 @@ export async function POST(req: Request) {
       }, { status: 400 });
     }
 
+    // Handle specific Prisma errors
+    if (error?.code === 'P2002') {
+      return NextResponse.json({ 
+        message: "Database constraint error." 
+      }, { status: 409 });
+    }
+    
+    // Handle database connection errors
+    if (error?.code === 'P1001' || error?.message?.includes('database')) {
+      console.error("Database connection issue detected");
+      return NextResponse.json({ 
+        message: "Database temporarily unavailable." 
+      }, { status: 503 });
+    }
+    
+    // Handle JWT errors
+    if (error?.message?.includes('JWT') || error?.message?.includes('secret')) {
+      console.error("JWT configuration issue detected");
+      return NextResponse.json({ 
+        message: "Authentication configuration error." 
+      }, { status: 500 });
+    }
+
     return NextResponse.json({ 
-      message: "Internal server error." 
+      message: "Internal server error.",
+      error: process.env.NODE_ENV === 'development' ? error?.message : undefined
     }, { status: 500 });
   }
 }

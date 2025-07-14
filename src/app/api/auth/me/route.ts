@@ -34,10 +34,11 @@ export async function GET(request: Request) {
     // Check rate limit
     const rateLimitKey = getRateLimitKey(request);
     if (isRateLimited(rateLimitKey)) {
-      console.warn(`Rate limit exceeded for auth/me endpoint from ${rateLimitKey}`);
+      // Silently handle rate limiting without console warning to reduce noise
       return NextResponse.json({ 
         authenticated: false,
-        message: "Too many requests" 
+        message: "Too many requests",
+        retryAfter: Math.ceil(RATE_WINDOW / 1000)
       }, { status: 429 });
     }
 
