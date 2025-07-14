@@ -73,13 +73,15 @@ export async function POST(req: Request) {
     // Check if account is approved (new verification check)
     if (user.accountStatus === 'pending') {
       return NextResponse.json({ 
-        message: "Your account is pending approval. Please wait for admin verification of your identity documents. You will receive an email once approved." 
+        message: "Your account is pending admin approval. Please wait for our admin team to review and approve your registration. You will receive an email notification once approved.",
+        accountStatus: "pending"
       }, { status: 403 });
     }
 
     if (user.accountStatus === 'suspended' || user.accountStatus === 'blocked') {
       return NextResponse.json({ 
-        message: "Your account has been suspended. Please contact customer service for assistance." 
+        message: "Your account has been suspended or blocked. Please contact customer service for assistance.",
+        accountStatus: user.accountStatus
       }, { status: 403 });
     }
 

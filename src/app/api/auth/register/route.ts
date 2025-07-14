@@ -137,7 +137,7 @@ export async function POST(req: Request) {
       addressProofUrl = `/api/uploads/${addressProofFileName}`;
     }
 
-    // Create user with pending status (or verified if no documents)
+    // Create user with unapproved status by default - requires admin approval
     const user = await prisma.user.create({
       data: {
         name,
@@ -148,9 +148,9 @@ export async function POST(req: Request) {
         dateOfBirth: dateOfBirth ? new Date(dateOfBirth) : null,
         photoIdUrl,
         addressProofUrl,
-        accountStatus: (photoIdUrl && addressProofUrl) ? "pending" : "verified", // Auto-verify if no documents
+        accountStatus: "pending", // All new users start as pending approval
         role: "customer", // Using UserRole enum
-        identityVerified: !photoIdUrl && !addressProofUrl, // Auto-verify if no documents
+        identityVerified: false, // Always false - requires admin verification
         ageVerified: age >= 16,
       }
     });
@@ -162,19 +162,22 @@ export async function POST(req: Request) {
       const { sendEmail } = await import('@/lib/email');
       await sendEmail({
         to: email,
-        subject: 'Registration Received - Global Pharma Trading',
-        text: `Welcome to Global Pharma Trading! Your registration has been received and is pending approval. You will receive an email once your identity documents have been verified.`,
+        subject: 'Registration Received - Pending Admin Approval - Global Pharma Trading',
+        text: `Welcome to Global Pharma Trading! Your registration has been received and is pending admin approval. You will receive an email once your account has been approved by our team.`,
         html: `
           <h2>Welcome to Global Pharma Trading!</h2>
           <p>Dear ${name},</p>
-          <p>Thank you for registering with Global Pharma Trading. We have received your registration and supporting documents.</p>
-          <p><strong>What happens next?</strong></p>
+          <p>Thank you for registering with Global Pharma Trading. We have received your registration successfully.</p>
+          <p><strong>Important: Account Approval Required</strong></p>
           <ul>
-            <li>Our team will review your identity documents (Photo ID and Address Proof)</li>
+            <li>All new accounts require admin approval for security purposes</li>
+            <li>Our team will review your registration details${photoIdUrl ? ' and uploaded documents' : ''}</li>
             <li>This process typically takes 1-2 business days</li>
             <li>You will receive an email confirmation once your account is approved</li>
-            <li>You will then be able to log in and access our pharmacy services</li>
+            <li>Only after approval will you be able to log in and access our pharmacy services</li>
           </ul>
+          <p><strong>What's Next?</strong></p>
+          <p>Please wait for our admin team to approve your account. You will receive an email notification once approved.</p>
           <p>If you have any questions, please contact our customer service team.</p>
           <p>Best regards,<br>Global Pharma Trading Team</p>
         `
@@ -184,10 +187,8 @@ export async function POST(req: Request) {
       // Don't fail registration if email fails
     }
 
-    // Note: Do not set authentication cookie since user might need approval
-    const message = (photoIdUrl && addressProofUrl) 
-      ? "Registration successful! Your account is pending approval. You will receive an email once your identity documents have been verified and your account is approved."
-      : "Registration successful! You can now log in to your account.";
+    // Note: Do not set authentication cookie since all users need approval
+    const message = "Registration successful! Your account is pending admin approval. You will receive an email once your account has been approved by our team and you can then log in.";
       
     return NextResponse.json({
       message,
@@ -197,7 +198,7 @@ export async function POST(req: Request) {
         email: user.email,
         accountStatus: user.accountStatus
       },
-      requiresApproval: (photoIdUrl && addressProofUrl)
+      requiresApproval: true // All new users require approval
     });
 
   } catch (error: any) {
