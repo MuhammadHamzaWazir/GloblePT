@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { prisma, withDatabaseRetry } from "@/lib/prisma";
+import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
 import { loginSchema } from "@/lib/validations";
 import { generateToken } from "@/lib/auth";
@@ -33,23 +33,20 @@ export async function POST(req: Request) {
     console.log("Attempting to log in user:", email);
     let user;
     try {
-      // Use retry mechanism for database operations
-      user = await withDatabaseRetry(async () => {
-        return await prisma.user.findUnique({
-          where: { email },
-          select: {
-            id: true,
-            name: true,
-            email: true,
-            password: true,
-            role: true,
-            accountStatus: true,
-            identityVerified: true,
-            createdAt: true,
-            updatedAt: true,
-          }
-        });
-      }, 2, 1000); // 2 retries, 1 second delay
+      user = await prisma.user.findUnique({
+        where: { email },
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          password: true,
+          role: true,
+          accountStatus: true,
+          identityVerified: true,
+          createdAt: true,
+          updatedAt: true,
+        }
+      });
       
       console.log("Database query successful");
       
