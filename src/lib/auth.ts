@@ -1,4 +1,4 @@
-import { SignJWT, jwtVerify } from 'jose'
+import jwt from 'jsonwebtoken'
 import bcrypt from 'bcryptjs'
 import crypto from 'crypto'
 import { AuthUser } from './types'
@@ -68,50 +68,48 @@ export async function verifyPassword(password: string, hashedPassword: string): 
 }
 
 /**
- * Generate a JWT token using jose library (serverless-friendly)
+ * Generate a JWT token using jsonwebtoken library
  */
-export async function generateToken(user: AuthUser): Promise<string> {
+export function generateToken(user: AuthUser): string {
   try {
     const secret = getJWTSecret();
     console.log('JWT Secret available:', !!secret);
     
-    const alg = 'HS256';
-    const jwt = await new SignJWT({
-      id: user.id,
-      email: user.email,
-      name: user.name,
-      role: user.role
-    })
-      .setProtectedHeader({ alg })
-      .setIssuedAt()
-      .setExpirationTime('7d')
-      .sign(new TextEncoder().encode(secret));
-    
-    return jwt;
+    return jwt.sign(
+      {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        role: user.role
+      },
+      secret,
+      { expiresIn: '7d' }
+    );
   } catch (error) {
     console.error('JWT token generation failed:', error);
     console.error('JWT_SECRET exists:', !!process.env.JWT_SECRET);
     console.error('JWT_SECRET length:', process.env.JWT_SECRET?.length || 0);
+    console.error('Secret used length:', getJWTSecret().length);
     throw new Error(`JWT token generation failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
 }
 
 /**
- * Verify and decode a JWT token using jose library
+ * Verify a JWT token using jsonwebtoken library
  */
-export async function verifyToken(token: string): Promise<AuthUser | null> {
+export function verifyToken(token: string): AuthUser | null {
   try {
     const secret = getJWTSecret();
-    const { payload } = await jwtVerify(token, new TextEncoder().encode(secret));
+    const decoded = jwt.verify(token, secret) as any;
     
     return {
-      id: payload.id as string,
-      email: payload.email as string,
-      name: payload.name as string,
-      role: payload.role as string
+      id: decoded.id,
+      email: decoded.email,
+      name: decoded.name,
+      role: decoded.role
     };
   } catch (error) {
-    console.error('JWT verification failed:', error);
+    console.error('JWT token verification failed:', error);
     return null;
   }
 }
@@ -155,7 +153,7 @@ export async function requireAuth(request: Request): Promise<AuthUser | null> {
     return null
   }
   
-  const user = await verifyToken(token)
+  const user = verifyToken(token)  // This is now synchronous
   return user
 }
 
