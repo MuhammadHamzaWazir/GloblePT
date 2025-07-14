@@ -20,16 +20,22 @@ const getJWTSecret = (): string => {
     VERCEL: !!process.env.VERCEL
   });
   
-  // If still no secret, use a fallback for production (Vercel environment)
+  // If still no secret, use a hardcoded fallback for production temporarily
   if (!secret && process.env.NODE_ENV === 'production') {
-    // Use a deterministic but secure fallback based on Vercel environment
+    // Temporary hardcoded secret for Vercel production debugging
+    secret = '9639abc4e5a74139f39c1d9d48d46ba1';
+    console.warn('⚠️ Using hardcoded JWT secret for production debugging');
+  }
+  
+  // Final fallback using crypto if needed
+  if (!secret) {
     const fallbackSeed = process.env.VERCEL_URL || 
                         process.env.NEXTAUTH_URL || 
                         process.env.VERCEL_GIT_COMMIT_SHA ||
                         'globalpharmatrading-fallback-2025';
     
     secret = crypto.createHash('sha256').update(fallbackSeed + 'jwt-secret').digest('hex');
-    console.warn('⚠️ Using fallback JWT secret generated from:', fallbackSeed);
+    console.warn('⚠️ Using crypto fallback JWT secret');
   }
   
   if (!secret) {
