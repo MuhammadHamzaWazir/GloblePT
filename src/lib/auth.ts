@@ -1,4 +1,4 @@
-import jwt from 'jsonwebtoken'
+import { SignJWT, jwtVerify } from 'jose'
 import bcrypt from 'bcryptjs'
 import crypto from 'crypto'
 import { AuthUser } from './types'
@@ -64,23 +64,26 @@ export async function verifyPassword(password: string, hashedPassword: string): 
 }
 
 /**
- * Generate a JWT token
+ * Generate a JWT token using jose library (serverless-friendly)
  */
-export function generateToken(user: AuthUser): string {
+export async function generateToken(user: AuthUser): Promise<string> {
   try {
     const secret = getJWTSecret();
     console.log('JWT Secret available:', !!secret);
     
-    return jwt.sign(
-      {
-        id: user.id,
-        email: user.email,
-        name: user.name,
-        role: user.role
-      },
-      secret,
-      { expiresIn: '7d' }
-    );
+    const alg = 'HS256';
+    const jwt = await new SignJWT({
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      role: user.role
+    })
+      .setProtectedHeader({ alg })
+      .setIssuedAt()
+      .setExpirationTime('7d')
+      .sign(new TextEncoder().encode(secret));
+    
+    return jwt;
   } catch (error) {
     console.error('JWT token generation failed:', error);
     console.error('JWT_SECRET exists:', !!process.env.JWT_SECRET);
@@ -90,20 +93,22 @@ export function generateToken(user: AuthUser): string {
 }
 
 /**
- * Verify and decode a JWT token
+ * Verify and decode a JWT token using jose library
  */
-export function verifyToken(token: string): AuthUser | null {
+export async function verifyToken(token: string): Promise<AuthUser | null> {
   try {
-    const decoded = jwt.verify(token, getJWTSecret()) as any
+    const secret = getJWTSecret();
+    const { payload } = await jwtVerify(token, new TextEncoder().encode(secret));
+    
     return {
-      id: decoded.id,
-      email: decoded.email,
-      name: decoded.name,
-      role: decoded.role
-    }
+      id: payload.id as string,
+      email: payload.email as string,
+      name: payload.name as string,
+      role: payload.role as string
+    };
   } catch (error) {
     console.error('JWT verification failed:', error);
-    return null
+    return null;
   }
 }
 
@@ -146,7 +151,7 @@ export async function requireAuth(request: Request): Promise<AuthUser | null> {
     return null
   }
   
-  const user = verifyToken(token)
+  const user = await verifyToken(token)
   return user
 }
 

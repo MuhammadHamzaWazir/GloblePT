@@ -52,7 +52,7 @@ export async function GET(request: Request) {
       }, { status: 401 });
     }
 
-    const user = verifyToken(token);
+    const user = await verifyToken(token);
 
     if (!user) {
       return NextResponse.json({ 
