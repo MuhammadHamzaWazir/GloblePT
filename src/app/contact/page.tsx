@@ -24,11 +24,17 @@ export default function ContactPage() {
       return;
     }
 
-    // Get reCAPTCHA token
-    const recaptchaToken = recaptchaRef.current?.getValue();
-    if (!recaptchaToken) {
-      setError('Please complete the reCAPTCHA verification');
-      return;
+    // Get reCAPTCHA token (only if reCAPTCHA is configured)
+    const isRecaptchaConfigured = process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY && 
+                                  process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY !== 'your_recaptcha_site_key_here';
+    
+    let recaptchaToken = null;
+    if (isRecaptchaConfigured) {
+      recaptchaToken = recaptchaRef.current?.getValue();
+      if (!recaptchaToken) {
+        setError('Please complete the reCAPTCHA verification');
+        return;
+      }
     }
 
     try {
@@ -209,13 +215,16 @@ export default function ContactPage() {
               </div>
 
               {/* Google reCAPTCHA */}
-              <div className="flex justify-center">
-                <ReCAPTCHA
-                  ref={recaptchaRef}
-                  sitekey={process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY || ''}
-                  theme="light"
-                />
-              </div>
+              {process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY && 
+               process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY !== 'your_recaptcha_site_key_here' && (
+                <div className="flex justify-center">
+                  <ReCAPTCHA
+                    ref={recaptchaRef}
+                    sitekey={process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY}
+                    theme="light"
+                  />
+                </div>
+              )}
 
               <button
                 type="submit"

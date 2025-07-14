@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { requireAuth } from '@/lib/auth';
+import { verifyToken } from '@/lib/auth';
 import { getUserOrders, getOrderDetails } from '@/lib/order-utils';
 
 export async function GET(request: NextRequest) {

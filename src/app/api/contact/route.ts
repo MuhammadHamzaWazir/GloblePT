@@ -14,17 +14,20 @@ export async function POST(req: NextRequest) {
       }, { status: 400 });
     }
 
-    // Validate reCAPTCHA
-    if (!recaptchaToken) {
+    // Validate reCAPTCHA (only if configured)
+    const isRecaptchaConfigured = process.env.RECAPTCHA_SECRET_KEY && 
+                                  process.env.RECAPTCHA_SECRET_KEY !== 'your_recaptcha_secret_key_here';
+    
+    if (isRecaptchaConfigured && !recaptchaToken) {
       return NextResponse.json({ 
         success: false, 
         message: 'Please complete the reCAPTCHA verification' 
       }, { status: 400 });
     }
 
-    // Verify reCAPTCHA with Google
-    const recaptchaSecret = process.env.RECAPTCHA_SECRET_KEY;
-    if (recaptchaSecret) {
+    // Verify reCAPTCHA with Google (only if configured)
+    if (isRecaptchaConfigured && recaptchaToken) {
+      const recaptchaSecret = process.env.RECAPTCHA_SECRET_KEY;
       try {
         const recaptchaResponse = await fetch('https://www.google.com/recaptcha/api/siteverify', {
           method: 'POST',
