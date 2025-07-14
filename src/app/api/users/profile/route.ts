@@ -24,7 +24,7 @@ export async function GET(request: NextRequest) {
     }
 
     console.log('Attempting to verify token...');
-    const decoded = await verifyToken(token);
+    const decoded = verifyToken(token);
     console.log('Token verification result:', !!decoded);
     console.log('Decoded user:', decoded ? { id: decoded.id, email: decoded.email } : 'INVALID');
     
@@ -99,7 +99,7 @@ export async function PUT(request: NextRequest) {
       }, { status: 401 });
     }
 
-    const decoded = await verifyToken(token);
+    const decoded = verifyToken(token);
     if (!decoded) {
       return NextResponse.json({ 
         success: false, 

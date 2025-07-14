@@ -2,20 +2,32 @@ import bcrypt from 'bcryptjs'
 import crypto from 'crypto'
 import { AuthUser } from './types'
 
-// Dynamic JWT import for better serverless compatibility
-let jwt: any = null;
+/**
+ * Simple JWT implementation using Node.js crypto
+ * More reliable in serverless environments than external libraries
+ */
+function base64urlEncode(str: string): string {
+  return Buffer.from(str)
+    .toString('base64')
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=/g, '');
+}
 
-async function getJWT() {
-  if (!jwt) {
-    try {
-      jwt = await import('jsonwebtoken');
-      console.log('✅ JWT library loaded successfully');
-    } catch (error) {
-      console.error('❌ Failed to load JWT library:', error);
-      throw new Error('JWT library not available');
-    }
-  }
-  return jwt;
+function base64urlDecode(str: string): string {
+  str += new Array(5 - (str.length % 4)).join('=');
+  return Buffer.from(str.replace(/\-/g, '+').replace(/_/g, '/'), 'base64').toString();
+}
+
+function createSignature(header: string, payload: string, secret: string): string {
+  const data = `${header}.${payload}`;
+  return crypto
+    .createHmac('sha256', secret)
+    .update(data)
+    .digest('base64')
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=/g, '');
 }
 
 // Get JWT_SECRET with proper error handling
@@ -85,27 +97,43 @@ export async function verifyPassword(password: string, hashedPassword: string): 
 }
 
 /**
- * Generate a JWT token using jsonwebtoken library
+ * Generate a JWT token using native crypto
  */
-export async function generateToken(user: AuthUser): Promise<string> {
+export function generateToken(user: AuthUser): string {
   try {
     console.log('🔧 generateToken called with user:', { id: user.id, email: user.email, role: user.role });
     
-    const jwtLib = await getJWT();
-    console.log('📚 JWT library loaded');
-    
     const secret = getJWTSecret();
-    console.log('🔐 JWT Secret obtained, length:', secret?.length || 0);
+    console.log('� JWT Secret obtained, length:', secret?.length || 0);
     
+    // JWT Header
+    const header = {
+      alg: 'HS256',
+      typ: 'JWT'
+    };
+    
+    // JWT Payload
+    const now = Math.floor(Date.now() / 1000);
     const payload = {
       id: user.id,
       email: user.email,
       name: user.name,
-      role: user.role
+      role: user.role,
+      iat: now,
+      exp: now + (7 * 24 * 60 * 60) // 7 days
     };
+    
     console.log('📝 JWT payload prepared:', payload);
     
-    const token = jwtLib.sign(payload, secret, { expiresIn: '7d' });
+    // Encode header and payload
+    const encodedHeader = base64urlEncode(JSON.stringify(header));
+    const encodedPayload = base64urlEncode(JSON.stringify(payload));
+    
+    // Create signature
+    const signature = createSignature(encodedHeader, encodedPayload, secret);
+    
+    // Combine to create JWT
+    const token = `${encodedHeader}.${encodedPayload}.${signature}`;
     console.log('✅ JWT token generated successfully, length:', token?.length || 0);
     
     return token;
@@ -123,19 +151,43 @@ export async function generateToken(user: AuthUser): Promise<string> {
 }
 
 /**
- * Verify a JWT token using jsonwebtoken library
+ * Verify a JWT token using native crypto
  */
-export async function verifyToken(token: string): Promise<AuthUser | null> {
+export function verifyToken(token: string): AuthUser | null {
   try {
-    const jwtLib = await getJWT();
     const secret = getJWTSecret();
-    const decoded = jwtLib.verify(token, secret) as any;
+    
+    // Split token into parts
+    const parts = token.split('.');
+    if (parts.length !== 3) {
+      console.error('Invalid token format');
+      return null;
+    }
+    
+    const [encodedHeader, encodedPayload, signature] = parts;
+    
+    // Verify signature
+    const expectedSignature = createSignature(encodedHeader, encodedPayload, secret);
+    if (signature !== expectedSignature) {
+      console.error('Invalid token signature');
+      return null;
+    }
+    
+    // Decode payload
+    const payload = JSON.parse(base64urlDecode(encodedPayload));
+    
+    // Check expiration
+    const now = Math.floor(Date.now() / 1000);
+    if (payload.exp && payload.exp < now) {
+      console.error('Token expired');
+      return null;
+    }
     
     return {
-      id: decoded.id,
-      email: decoded.email,
-      name: decoded.name,
-      role: decoded.role
+      id: payload.id,
+      email: payload.email,
+      name: payload.name,
+      role: payload.role
     };
   } catch (error) {
     console.error('JWT token verification failed:', error);
@@ -182,7 +234,7 @@ export async function requireAuth(request: Request): Promise<AuthUser | null> {
     return null
   }
   
-  const user = await verifyToken(token)  // This is now async again
+  const user = verifyToken(token)  // Back to synchronous
   return user
 }
 

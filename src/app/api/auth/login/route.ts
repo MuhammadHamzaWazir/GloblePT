@@ -131,7 +131,7 @@ export async function POST(req: Request) {
       
       let token;
       try {
-        token = await generateToken({
+        token = generateToken({
           id: user.id.toString(),
           email: user.email,
           name: user.name,
