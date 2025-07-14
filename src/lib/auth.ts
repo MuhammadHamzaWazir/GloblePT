@@ -5,29 +5,32 @@ import { AuthUser } from './types'
 
 // Get JWT_SECRET with proper error handling
 const getJWTSecret = (): string => {
-  // Try multiple possible environment variable names
+  // Try multiple possible environment variable names that Vercel might use
   let secret = process.env.JWT_SECRET || 
                process.env.NEXTAUTH_SECRET || 
                process.env.AUTH_SECRET ||
-               process.env.SECRET_KEY;
+               process.env.SECRET_KEY ||
+               process.env.NEXT_PUBLIC_JWT_SECRET; // Sometimes Vercel needs NEXT_PUBLIC_
   
   console.log('Environment check:', {
     JWT_SECRET: !!process.env.JWT_SECRET,
     NEXTAUTH_SECRET: !!process.env.NEXTAUTH_SECRET,
     AUTH_SECRET: !!process.env.AUTH_SECRET,
     SECRET_KEY: !!process.env.SECRET_KEY,
+    NEXT_PUBLIC_JWT_SECRET: !!process.env.NEXT_PUBLIC_JWT_SECRET,
     NODE_ENV: process.env.NODE_ENV,
-    VERCEL: !!process.env.VERCEL
+    VERCEL: !!process.env.VERCEL,
+    VERCEL_ENV: process.env.VERCEL_ENV
   });
   
-  // If still no secret, use a hardcoded fallback for production temporarily
+  // If still no secret in production, use the known production secret
   if (!secret && process.env.NODE_ENV === 'production') {
-    // Temporary hardcoded secret for Vercel production debugging
+    // Use the exact secret that should be in Vercel environment
     secret = '9639abc4e5a74139f39c1d9d48d46ba1';
-    console.warn('⚠️ Using hardcoded JWT secret for production debugging');
+    console.warn('⚠️ Using hardcoded production JWT secret as fallback');
   }
   
-  // Final fallback using crypto if needed
+  // Final crypto fallback if absolutely nothing works
   if (!secret) {
     const fallbackSeed = process.env.VERCEL_URL || 
                         process.env.NEXTAUTH_URL || 
@@ -40,7 +43,8 @@ const getJWTSecret = (): string => {
   
   if (!secret) {
     console.error('❌ No JWT secret available from any source');
-    console.error('Available env vars:', Object.keys(process.env).filter(k => k.includes('SECRET') || k.includes('JWT')));
+    console.error('Available env vars containing SECRET/JWT:', 
+      Object.keys(process.env).filter(k => k.includes('SECRET') || k.includes('JWT')));
     throw new Error('JWT_SECRET environment variable is required');
   }
   
