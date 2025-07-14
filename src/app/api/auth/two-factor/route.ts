@@ -24,7 +24,7 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { action, token, backupCode } = body;
+    const { action, token: twoFactorToken, backupCode } = body;
 
     const fullUser = await prisma.user.findUnique({
       where: { id: parseInt(user.id) },
@@ -72,7 +72,7 @@ export async function POST(req: NextRequest) {
         });
 
       case 'verify':
-        if (!token) {
+        if (!twoFactorToken) {
           return NextResponse.json({ message: "Verification token required" }, { status: 400 });
         }
 
@@ -87,7 +87,7 @@ export async function POST(req: NextRequest) {
         const verified = speakeasy.totp.verify({
           secret: verifySecret,
           encoding: 'base32',
-          token: token,
+          token: twoFactorToken,
           window: 1 // Allow 1 step tolerance
         });
 
@@ -95,12 +95,12 @@ export async function POST(req: NextRequest) {
           return NextResponse.json({ message: "Invalid verification code. Please try again." }, { status: 400 });
         }
 
-        // Save 2FA settings to user (using existing fields for now)
+        // Save 2FA settings to user using proper schema fields
         await prisma.user.update({
           where: { id: parseInt(user.id) },
           data: {
-            // Temporarily store in file1Url field (not ideal, but works for demo)
-            file1Url: `2fa:${verifySecret}`
+            twoFactorSecret: verifySecret,
+            twoFactorEnabled: true
           }
         });
 
@@ -113,7 +113,9 @@ export async function POST(req: NextRequest) {
         await prisma.user.update({
           where: { id: parseInt(user.id) },
           data: {
-            file1Url: null // Clear 2FA secret
+            twoFactorSecret: null,
+            twoFactorEnabled: false,
+            twoFactorBackupCodes: null
           }
         });
 
@@ -124,18 +126,18 @@ export async function POST(req: NextRequest) {
 
       case 'verify-login':
         // Verify 2FA token during login
-        if (!token && !backupCode) {
+        if (!twoFactorToken && !backupCode) {
           return NextResponse.json({ message: "2FA token or backup code required" }, { status: 400 });
         }
 
-        // Check if user has 2FA enabled (secret stored in file1Url)
-        const twoFactorSecret = fullUser.file1Url?.startsWith('2fa:') ? fullUser.file1Url.substring(4) : null;
+        // Check if user has 2FA enabled
+        const twoFactorSecret = fullUser.twoFactorSecret;
         
-        if (twoFactorSecret && token) {
+        if (twoFactorSecret && twoFactorToken) {
           const loginVerified = speakeasy.totp.verify({
             secret: twoFactorSecret,
             encoding: 'base32',
-            token: token,
+            token: twoFactorToken,
             window: 1
           });
 
@@ -143,10 +145,10 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ message: "Invalid 2FA code" }, { status: 400 });
           }
         } else if (backupCode) {
-          // In production, check against stored backup codes
-          // For now, accept any 6-character backup code
-          if (backupCode.length !== 6) {
-            return NextResponse.json({ message: "Invalid backup code format" }, { status: 400 });
+          // Check against stored backup codes
+          const storedBackupCodes = fullUser.twoFactorBackupCodes ? JSON.parse(fullUser.twoFactorBackupCodes) : [];
+          if (!storedBackupCodes.includes(backupCode)) {
+            return NextResponse.json({ message: "Invalid backup code" }, { status: 400 });
           }
         } else {
           return NextResponse.json({ message: "2FA not properly configured" }, { status: 400 });
@@ -158,8 +160,8 @@ export async function POST(req: NextRequest) {
         });
 
       case 'status':
-        // Check 2FA status for user (stored in file1Url field)
-        const has2FA = fullUser.file1Url?.startsWith('2fa:') || false;
+        // Check 2FA status for user
+        const has2FA = fullUser.twoFactorEnabled || false;
         return NextResponse.json({
           enabled: has2FA,
           setupRequired: !has2FA,
