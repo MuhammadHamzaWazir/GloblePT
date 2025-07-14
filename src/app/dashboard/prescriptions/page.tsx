@@ -303,33 +303,59 @@ function PrescriptionsContent() {
   };
 
   // Form handling functions
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async (e?: React.FormEvent | React.MouseEvent) => {
+    console.log('🔥 handleSubmit called!', { 
+      eventType: e?.type, 
+      hasUser: !!user, 
+      uploadLoading, 
+      medicinesCount: medicines.length,
+      filesCount: selectedFiles.length 
+    });
     
-    // Additional safety check to prevent default form submission
-    if (e.defaultPrevented) {
-      console.log('⚠️ Form submission already prevented');
-      return;
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
     }
     
-    console.log('🚀 Form submission initiated');
+    console.log('🚀 Form submission initiated - bypassing HTML form submission');
+    console.log('👤 User session check:', { 
+      hasUser: !!user, 
+      userId: user?.id, 
+      userEmail: user?.email 
+    });
     
     if (!user) {
       console.log('❌ No user found, aborting submission');
+      alert('❌ No user session found. Please refresh the page and try again.');
       return;
     }
     
     // Validate medicines
     const validMedicines = medicines.filter(med => med.name.trim() !== '');
+    console.log('📝 Medicine validation:', { 
+      totalMedicines: medicines.length, 
+      validMedicines: validMedicines.length,
+      medicines: medicines 
+    });
+    
     if (validMedicines.length === 0) {
+      console.log('❌ Validation failed: No valid medicines');
       setError('Please add at least one medicine');
       return;
     }
     
+    console.log('📁 File validation:', { 
+      selectedFiles: selectedFiles.length,
+      files: selectedFiles.map(f => f.name) 
+    });
+    
     if (selectedFiles.length === 0) {
+      console.log('❌ Validation failed: No files selected');
       setError('Please upload at least one prescription file');
       return;
     }
+    
+    console.log('✅ All validations passed - proceeding with submission');
     
     try {
       setUploadLoading(true);
@@ -533,7 +559,7 @@ function PrescriptionsContent() {
           <p className="text-gray-600">Upload your prescription files and add medicine details</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-6" action="javascript:void(0)">
+        <form className="space-y-6" onSubmit={(e) => e.preventDefault()}>
           {/* Description */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -704,8 +730,17 @@ function PrescriptionsContent() {
           {/* Submit Button */}
           <div className="flex justify-end">
             <button
-              type="submit"
+              type="button"
               disabled={uploadLoading}
+              onClick={(e) => {
+                console.log('🔴 Button clicked!', { 
+                  disabled: uploadLoading, 
+                  hasUser: !!user,
+                  medicines: medicines.length,
+                  files: selectedFiles.length 
+                });
+                handleSubmit(e);
+              }}
               className="bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white px-6 py-3 rounded-lg flex items-center transition-colors"
             >
               {uploadLoading ? (
