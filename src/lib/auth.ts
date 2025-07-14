@@ -5,26 +5,40 @@ import { AuthUser } from './types'
 
 // Get JWT_SECRET with proper error handling
 const getJWTSecret = (): string => {
-  let secret = process.env.JWT_SECRET;
+  // Try multiple possible environment variable names
+  let secret = process.env.JWT_SECRET || 
+               process.env.NEXTAUTH_SECRET || 
+               process.env.AUTH_SECRET ||
+               process.env.SECRET_KEY;
   
-  // If JWT_SECRET is not set, try alternative environment variable names
-  if (!secret) {
-    secret = process.env.NEXTAUTH_SECRET;
-  }
+  console.log('Environment check:', {
+    JWT_SECRET: !!process.env.JWT_SECRET,
+    NEXTAUTH_SECRET: !!process.env.NEXTAUTH_SECRET,
+    AUTH_SECRET: !!process.env.AUTH_SECRET,
+    SECRET_KEY: !!process.env.SECRET_KEY,
+    NODE_ENV: process.env.NODE_ENV,
+    VERCEL: !!process.env.VERCEL
+  });
   
-  // If still no secret, use a fallback for production
+  // If still no secret, use a fallback for production (Vercel environment)
   if (!secret && process.env.NODE_ENV === 'production') {
-    // Use a deterministic but secure fallback based on other env vars
-    const fallback = process.env.VERCEL_URL || process.env.NEXTAUTH_URL || 'default-fallback';
-    secret = crypto.createHash('sha256').update(fallback).digest('hex');
-    console.warn('⚠️ Using fallback JWT secret. Please set JWT_SECRET environment variable.');
+    // Use a deterministic but secure fallback based on Vercel environment
+    const fallbackSeed = process.env.VERCEL_URL || 
+                        process.env.NEXTAUTH_URL || 
+                        process.env.VERCEL_GIT_COMMIT_SHA ||
+                        'globalpharmatrading-fallback-2025';
+    
+    secret = crypto.createHash('sha256').update(fallbackSeed + 'jwt-secret').digest('hex');
+    console.warn('⚠️ Using fallback JWT secret generated from:', fallbackSeed);
   }
   
   if (!secret) {
-    console.error('❌ JWT_SECRET environment variable is not set');
+    console.error('❌ No JWT secret available from any source');
+    console.error('Available env vars:', Object.keys(process.env).filter(k => k.includes('SECRET') || k.includes('JWT')));
     throw new Error('JWT_SECRET environment variable is required');
   }
   
+  console.log('✅ JWT secret found, length:', secret.length);
   return secret;
 };
 

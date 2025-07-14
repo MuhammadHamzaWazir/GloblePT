@@ -4,5 +4,9 @@
     "src/app/api/**/*.ts": {
       "maxDuration": 30
     }
+  },
+  "env": {
+    "JWT_SECRET": "9639abc4e5a74139f39c1d9d48d46ba1",
+    "DATABASE_URL": "mysql://root:aSJaTqBawFjJzCvUyZuUiobxXaTaTfpu@nozomi.proxy.rlwy.net:54948/railway"
   }
 }
