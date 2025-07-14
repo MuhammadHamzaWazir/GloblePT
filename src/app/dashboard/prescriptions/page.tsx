@@ -175,14 +175,22 @@ function PrescriptionsContent() {
       setLoading(true);
       setError('');
       
+      console.log('📋 Fetching prescriptions from /api/prescriptions/user');
+      
       const response = await fetch('/api/prescriptions/user', {
         credentials: 'include'
       });
+      
+      console.log(`📋 Fetch response status: ${response.status}`);
+      console.log(`📋 Fetch response URL: ${response.url}`);
+      
       const data = await response.json();
       
       if (response.ok && data.success) {
         const prescriptionData = data.prescriptions || [];
         setPrescriptions(prescriptionData);
+        
+        console.log(`✅ Successfully loaded ${prescriptionData.length} prescriptions`);
         
         // Use statistics from API if available, otherwise calculate locally
         const statsFromAPI = data.stats;
@@ -195,15 +203,19 @@ function PrescriptionsContent() {
         }
       } else {
         const errorMessage = data.message || `HTTP ${response.status}: ${response.statusText}`;
-        console.error('Failed to fetch prescriptions:', errorMessage);
+        console.error('❌ Failed to fetch prescriptions:', errorMessage);
+        console.error('❌ Response URL was:', response.url);
+        console.error('❌ Expected URL: /api/prescriptions/user');
         setError(`Failed to load prescriptions: ${errorMessage}`);
       }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-      console.error('Error fetching prescriptions:', error);
+      console.error('❌ Error fetching prescriptions:', errorMessage);
+      console.error('❌ Full error object:', error);
       setError(`Failed to load prescriptions: ${errorMessage}`);
     } finally {
       setLoading(false);
+      console.log('📋 Prescription fetch completed');
     }
   };
 
@@ -293,7 +305,19 @@ function PrescriptionsContent() {
   // Form handling functions
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user) return;
+    
+    // Additional safety check to prevent default form submission
+    if (e.defaultPrevented) {
+      console.log('⚠️ Form submission already prevented');
+      return;
+    }
+    
+    console.log('🚀 Form submission initiated');
+    
+    if (!user) {
+      console.log('❌ No user found, aborting submission');
+      return;
+    }
     
     // Validate medicines
     const validMedicines = medicines.filter(med => med.name.trim() !== '');
@@ -309,6 +333,9 @@ function PrescriptionsContent() {
     
     try {
       setUploadLoading(true);
+      setError(''); // Clear any previous errors
+      
+      console.log('📋 Starting file upload process...');
       
       // First upload the files
       const fileFormData = new FormData();
@@ -316,18 +343,26 @@ function PrescriptionsContent() {
         fileFormData.append('files', file);
       });
       
+      console.log(`📂 Uploading ${selectedFiles.length} files...`);
+      
       const uploadResponse = await fetch('/api/upload/prescription-files', {
         method: 'POST',
         body: fileFormData,
         credentials: 'include'
       });
       
+      console.log(`📂 Upload response status: ${uploadResponse.status}`);
+      
       const uploadData = await uploadResponse.json();
       
       if (!uploadResponse.ok || !uploadData.success) {
-        setError(uploadData.message || 'Failed to upload files');
+        const errorMsg = uploadData.message || 'Failed to upload files';
+        console.log('❌ File upload failed:', errorMsg);
+        setError(errorMsg);
         return;
       }
+      
+      console.log('✅ Files uploaded successfully');
       
       // Now create prescription with file URLs
       const medicineText = validMedicines
@@ -344,6 +379,8 @@ function PrescriptionsContent() {
         filename: uploadData.files[0].originalName
       };
       
+      console.log('📋 Submitting prescription data...');
+      
       const res = await fetch('/api/prescriptions/submit-with-files', {
         method: 'POST',
         headers: {
@@ -353,8 +390,11 @@ function PrescriptionsContent() {
         credentials: 'include'
       });
       
+      console.log(`📋 Prescription submission response status: ${res.status}`);
+      
       if (res.ok) {
         const response = await res.json();
+        console.log('✅ Prescription submitted successfully');
         
         // Reset form
         setDesc(''); 
@@ -369,14 +409,19 @@ function PrescriptionsContent() {
         alert('Prescription submitted successfully! It will be reviewed by our pharmacy team.');
       } else {
         const errorData = await res.json().catch(() => ({ message: 'Failed to submit prescription' }));
-        setError(errorData.message || 'Failed to submit prescription');
+        const errorMsg = errorData.message || 'Failed to submit prescription';
+        console.log('❌ Prescription submission failed:', errorMsg);
+        setError(errorMsg);
         console.error('Prescription submission failed:', errorData);
       }
     } catch (err) {
-      setError('Error submitting prescription: ' + (err instanceof Error ? err.message : 'Unknown error'));
+      const errorMsg = 'Error submitting prescription: ' + (err instanceof Error ? err.message : 'Unknown error');
+      console.log('❌ Prescription submission error:', errorMsg);
+      setError(errorMsg);
       console.error('Error submitting prescription:', err);
     } finally {
       setUploadLoading(false);
+      console.log('📋 Form submission process completed');
     }
   };
 
@@ -488,7 +533,7 @@ function PrescriptionsContent() {
           <p className="text-gray-600">Upload your prescription files and add medicine details</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handleSubmit} className="space-y-6" action="javascript:void(0)">
           {/* Description */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">

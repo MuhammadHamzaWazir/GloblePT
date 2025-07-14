@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Debug Prescription Fetch</title>
+</head>
+<body>
+    <h1>Debug Prescription Fetch Issue</h1>
+    <button onclick="testFetch()">Test Prescription Fetch</button>
+    <div id="result"></div>
+
+    <script>
+        async function testFetch() {
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = 'Testing...';
+            
+            try {
+                console.log('🔍 Testing fetch to /api/prescriptions/user');
+                
+                const response = await fetch('/api/prescriptions/user', {
+                    credentials: 'include'
+                });
+                
+                console.log('📋 Response status:', response.status);
+                console.log('📋 Response URL:', response.url);
+                
+                const data = await response.json();
+                
+                resultDiv.innerHTML = `
+                    <h3>Fetch Result:</h3>
+                    <p><strong>Status:</strong> ${response.status}</p>
+                    <p><strong>URL:</strong> ${response.url}</p>
+                    <p><strong>Success:</strong> ${data.success}</p>
+                    <p><strong>Message:</strong> ${data.message || 'No message'}</p>
+                `;
+                
+            } catch (error) {
+                console.error('❌ Fetch error:', error);
+                resultDiv.innerHTML = `
+                    <h3>Fetch Error:</h3>
+                    <p style="color: red;"><strong>Error:</strong> ${error.message}</p>
+                    <p><strong>Error type:</strong> ${error.constructor.name}</p>
+                `;
+            }
+        }
+        
+        // Test on page load
+        window.addEventListener('load', () => {
+            console.log('🌐 Current URL:', window.location.href);
+            console.log('🌐 Base URL:', window.location.origin);
+        });
+    </script>
+</body>
+</html>
