@@ -5,6 +5,8 @@ import { AuthUser } from './types'
 
 // Get JWT_SECRET with proper error handling
 const getJWTSecret = (): string => {
+  console.log('🔍 getJWTSecret called');
+  
   // Try multiple possible environment variable names that Vercel might use
   let secret = process.env.JWT_SECRET || 
                process.env.NEXTAUTH_SECRET || 
@@ -12,7 +14,7 @@ const getJWTSecret = (): string => {
                process.env.SECRET_KEY ||
                process.env.NEXT_PUBLIC_JWT_SECRET; // Sometimes Vercel needs NEXT_PUBLIC_
   
-  console.log('Environment check:', {
+  console.log('🌍 Environment check:', {
     JWT_SECRET: !!process.env.JWT_SECRET,
     NEXTAUTH_SECRET: !!process.env.NEXTAUTH_SECRET,
     AUTH_SECRET: !!process.env.AUTH_SECRET,
@@ -72,21 +74,30 @@ export async function verifyPassword(password: string, hashedPassword: string): 
  */
 export function generateToken(user: AuthUser): string {
   try {
-    const secret = getJWTSecret();
-    console.log('JWT Secret available:', !!secret);
+    console.log('🔧 generateToken called with user:', { id: user.id, email: user.email, role: user.role });
     
-    return jwt.sign(
-      {
-        id: user.id,
-        email: user.email,
-        name: user.name,
-        role: user.role
-      },
-      secret,
-      { expiresIn: '7d' }
-    );
+    const secret = getJWTSecret();
+    console.log('🔐 JWT Secret obtained, length:', secret?.length || 0);
+    
+    const payload = {
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      role: user.role
+    };
+    console.log('📝 JWT payload prepared:', payload);
+    
+    const token = jwt.sign(payload, secret, { expiresIn: '7d' });
+    console.log('✅ JWT token generated successfully, length:', token?.length || 0);
+    
+    return token;
   } catch (error) {
-    console.error('JWT token generation failed:', error);
+    console.error('❌ JWT token generation failed:', error);
+    if (error instanceof Error) {
+      console.error('Error type:', error.constructor.name);
+      console.error('Error message:', error.message);
+      console.error('Error stack:', error.stack);
+    }
     console.error('JWT_SECRET exists:', !!process.env.JWT_SECRET);
     console.error('JWT_SECRET length:', process.env.JWT_SECRET?.length || 0);
     console.error('Secret used length:', getJWTSecret().length);
