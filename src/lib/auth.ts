@@ -31,16 +31,26 @@ export async function verifyPassword(password: string, hashedPassword: string): 
  * Generate a JWT token
  */
 export function generateToken(user: AuthUser): string {
-  return jwt.sign(
-    {
-      id: user.id,
-      email: user.email,
-      name: user.name,
-      role: user.role
-    },
-    getJWTSecret(),
-    { expiresIn: '7d' }
-  )
+  try {
+    const secret = getJWTSecret();
+    console.log('JWT Secret available:', !!secret);
+    
+    return jwt.sign(
+      {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        role: user.role
+      },
+      secret,
+      { expiresIn: '7d' }
+    );
+  } catch (error) {
+    console.error('JWT token generation failed:', error);
+    console.error('JWT_SECRET exists:', !!process.env.JWT_SECRET);
+    console.error('JWT_SECRET length:', process.env.JWT_SECRET?.length || 0);
+    throw new Error(`JWT token generation failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+  }
 }
 
 /**
