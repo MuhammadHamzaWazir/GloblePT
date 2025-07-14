@@ -1,7 +1,22 @@
-import jwt from 'jsonwebtoken'
 import bcrypt from 'bcryptjs'
 import crypto from 'crypto'
 import { AuthUser } from './types'
+
+// Dynamic JWT import for better serverless compatibility
+let jwt: any = null;
+
+async function getJWT() {
+  if (!jwt) {
+    try {
+      jwt = await import('jsonwebtoken');
+      console.log('✅ JWT library loaded successfully');
+    } catch (error) {
+      console.error('❌ Failed to load JWT library:', error);
+      throw new Error('JWT library not available');
+    }
+  }
+  return jwt;
+}
 
 // Get JWT_SECRET with proper error handling
 const getJWTSecret = (): string => {
@@ -72,9 +87,12 @@ export async function verifyPassword(password: string, hashedPassword: string): 
 /**
  * Generate a JWT token using jsonwebtoken library
  */
-export function generateToken(user: AuthUser): string {
+export async function generateToken(user: AuthUser): Promise<string> {
   try {
     console.log('🔧 generateToken called with user:', { id: user.id, email: user.email, role: user.role });
+    
+    const jwtLib = await getJWT();
+    console.log('📚 JWT library loaded');
     
     const secret = getJWTSecret();
     console.log('🔐 JWT Secret obtained, length:', secret?.length || 0);
@@ -87,7 +105,7 @@ export function generateToken(user: AuthUser): string {
     };
     console.log('📝 JWT payload prepared:', payload);
     
-    const token = jwt.sign(payload, secret, { expiresIn: '7d' });
+    const token = jwtLib.sign(payload, secret, { expiresIn: '7d' });
     console.log('✅ JWT token generated successfully, length:', token?.length || 0);
     
     return token;
@@ -100,7 +118,6 @@ export function generateToken(user: AuthUser): string {
     }
     console.error('JWT_SECRET exists:', !!process.env.JWT_SECRET);
     console.error('JWT_SECRET length:', process.env.JWT_SECRET?.length || 0);
-    console.error('Secret used length:', getJWTSecret().length);
     throw new Error(`JWT token generation failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
 }
@@ -108,10 +125,11 @@ export function generateToken(user: AuthUser): string {
 /**
  * Verify a JWT token using jsonwebtoken library
  */
-export function verifyToken(token: string): AuthUser | null {
+export async function verifyToken(token: string): Promise<AuthUser | null> {
   try {
+    const jwtLib = await getJWT();
     const secret = getJWTSecret();
-    const decoded = jwt.verify(token, secret) as any;
+    const decoded = jwtLib.verify(token, secret) as any;
     
     return {
       id: decoded.id,
@@ -164,7 +182,7 @@ export async function requireAuth(request: Request): Promise<AuthUser | null> {
     return null
   }
   
-  const user = verifyToken(token)  // This is now synchronous
+  const user = await verifyToken(token)  // This is now async again
   return user
 }
 
